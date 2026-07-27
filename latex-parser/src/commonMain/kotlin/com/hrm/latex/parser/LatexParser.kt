@@ -109,16 +109,10 @@ internal class ParseSession(
     private val commandParser = CommandParser(this, chemicalParser)
 
     fun parse(): LatexNode.Document {
-        val children = mutableListOf<LatexNode>()
-        while (!tokenStream.isEOF()) {
-            val node = parseExpression()
-            if (node != null) {
-                children.add(node)
-            }
-        }
+        val children = parseMathList { false }
 
         val document = LatexNode.Document(
-            normalizeStyleDeclarations(children),
+            children,
             sourceRange = SourceRange(0, inputLength)
         )
         HLog.d(TAG) { "解析成功，生成 ${children.size} 个节点, 诊断: ${diagnostics.size} 条" }
@@ -131,13 +125,37 @@ internal class ParseSession(
 
         while (true) {
             val token = tokenStream.peek()
-            if (token is LatexToken.Superscript) {
+            if (token is LatexToken.Prime) {
+                val primes = mutableListOf<LatexNode>()
+                while (tokenStream.peek() is LatexToken.Prime) {
+                    val prime = tokenStream.advance() as LatexToken.Prime
+                    primes.add(LatexNode.Symbol("prime", "′", sourceRange = prime.range))
+                }
+                if (node.hasSuperscript()) {
+                    reportDoubleSuperscript(token.range)
+                } else {
+                    node = LatexNode.Superscript(
+                        node,
+                        LatexNode.Group(primes),
+                        sourceRange = tokenStream.rangeFrom(startOffset)
+                    )
+                }
+            } else if (token is LatexToken.Superscript) {
                 tokenStream.advance()
                 val exponent = parseScriptContent()
-                node = LatexNode.Superscript(
-                    node, exponent,
-                    sourceRange = tokenStream.rangeFrom(startOffset)
-                )
+                node =
+                    if (node.hasPrimeOnlySuperscript()) {
+                        node.appendToPrimeSuperscript(exponent, tokenStream.rangeFrom(startOffset))
+                    } else if (node.hasSuperscript()) {
+                        reportDoubleSuperscript(token.range)
+                        node
+                    } else {
+                        LatexNode.Superscript(
+                            node,
+                            exponent,
+                            sourceRange = tokenStream.rangeFrom(startOffset)
+                        )
+                    }
             } else if (token is LatexToken.Subscript) {
                 tokenStream.advance()
                 val index = parseScriptContent()
@@ -150,6 +168,41 @@ internal class ParseSession(
             }
         }
         return node
+    }
+
+    private fun LatexNode.hasSuperscript(): Boolean =
+        when (this) {
+            is LatexNode.Superscript -> true
+            is LatexNode.Subscript -> base.hasSuperscript()
+            else -> false
+        }
+
+    private fun LatexNode.hasPrimeOnlySuperscript(): Boolean =
+        this is LatexNode.Superscript && exponent.isPrimeOnly()
+
+    private fun LatexNode.isPrimeOnly(): Boolean =
+        this is LatexNode.Group &&
+            children.isNotEmpty() &&
+            children.all { child -> child is LatexNode.Symbol && child.symbol == "prime" }
+
+    private fun LatexNode.appendToPrimeSuperscript(
+        exponent: LatexNode,
+        range: SourceRange
+    ): LatexNode =
+        (this as LatexNode.Superscript).copy(
+            exponent = LatexNode.Group((this.exponent as LatexNode.Group).children + exponent),
+            sourceRange = range
+        )
+
+    private fun reportDoubleSuperscript(range: SourceRange) {
+        diagnostics.add(
+            ParseDiagnostic(
+                range = range,
+                message = "Double superscript",
+                severity = ParseDiagnostic.Severity.ERROR,
+                category = ParseDiagnostic.Category.INVALID_ARGUMENT
+            )
+        )
     }
 
     override fun parseFactor(): LatexNode? {
@@ -208,6 +261,19 @@ internal class ParseSession(
                 return LatexNode.Text("&", sourceRange = token.range)
             }
 
+            is LatexToken.Prime -> {
+                tokenStream.advance()
+                diagnostics.add(
+                    ParseDiagnostic(
+                        range = token.range,
+                        message = "Prime requires a base",
+                        severity = ParseDiagnostic.Severity.WARNING,
+                        category = ParseDiagnostic.Category.UNEXPECTED_TOKEN
+                    )
+                )
+                return LatexNode.Symbol("prime", "′", sourceRange = token.range)
+            }
+
             is LatexToken.MathShift -> {
                 return parseMathMode(token)
             }
@@ -235,19 +301,54 @@ internal class ParseSession(
     override fun parseGroup(): LatexNode.Group {
         val startOffset = tokenStream.currentSourceOffset()
         tokenStream.expect("{")
-        val children = mutableListOf<LatexNode>()
+        val children = parseMathList { it is LatexToken.RightBrace }
 
-        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
+        if (!tokenStream.isEOF()) {
+            tokenStream.expect("}")
+        }
+        return LatexNode.Group(children, sourceRange = tokenStream.rangeFrom(startOffset))
+    }
+
+    private fun parseMathList(isTerminator: (LatexToken?) -> Boolean): List<LatexNode> {
+        val listStart = tokenStream.currentSourceOffset()
+        val children = mutableListOf<LatexNode>()
+        var atopNumerator: List<LatexNode>? = null
+        var atopRange: SourceRange? = null
+
+        while (!tokenStream.isEOF() && !isTerminator(tokenStream.peek())) {
+            val token = tokenStream.peek()
+            if (token is LatexToken.Command && token.name == "atop" && atopNumerator == null) {
+                tokenStream.advance()
+                atopNumerator = normalizeStyleDeclarations(children.toList())
+                atopRange = token.range
+                children.clear()
+                continue
+            }
             val node = parseExpression()
             if (node != null) {
                 children.add(node)
             }
         }
 
-        if (!tokenStream.isEOF()) {
-            tokenStream.expect("}")
-        }
-        return LatexNode.Group(normalizeStyleDeclarations(children), sourceRange = tokenStream.rangeFrom(startOffset))
+        val normalizedChildren = normalizeStyleDeclarations(children)
+        return atopNumerator?.let { numerator ->
+            val separatorRange = requireNotNull(atopRange)
+            val listEnd = tokenStream.previousEndOffset()
+            listOf(
+                LatexNode.Fraction(
+                    numerator = LatexNode.Group(
+                        numerator,
+                        sourceRange = SourceRange(listStart, separatorRange.start)
+                    ),
+                    denominator = LatexNode.Group(
+                        normalizedChildren,
+                        sourceRange = SourceRange(separatorRange.end, listEnd)
+                    ),
+                    style = LatexNode.Fraction.FractionStyle.RULELESS,
+                    sourceRange = SourceRange(listStart, listEnd)
+                )
+            )
+        } ?: normalizedChildren
     }
 
     override fun parseArgument(): LatexNode? {
@@ -265,25 +366,19 @@ internal class ParseSession(
         val count = openToken.count
         tokenStream.advance()
 
-        val children = mutableListOf<LatexNode>()
-        while (!tokenStream.isEOF()) {
-            val next = tokenStream.peek()
-            if (next is LatexToken.MathShift && next.count == count) {
-                tokenStream.advance()
-                break
-            }
-            val node = parseExpression()
-            if (node != null) {
-                children.add(node)
-            }
+        val children = parseMathList { token ->
+            token is LatexToken.MathShift && token.count == count
+        }
+        val closingToken = tokenStream.peek()
+        if (closingToken is LatexToken.MathShift && closingToken.count == count) {
+            tokenStream.advance()
         }
 
         val range = tokenStream.rangeFrom(startOffset)
-        val normalizedChildren = normalizeStyleDeclarations(children)
         return if (count == 2) {
-            LatexNode.DisplayMath(normalizedChildren, sourceRange = range)
+            LatexNode.DisplayMath(children, sourceRange = range)
         } else {
-            LatexNode.InlineMath(normalizedChildren, sourceRange = range)
+            LatexNode.InlineMath(children, sourceRange = range)
         }
     }
 

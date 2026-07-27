@@ -227,7 +227,7 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class FractionStyle {
-            NORMAL, DISPLAY, TEXT, CONTINUED
+            NORMAL, DISPLAY, TEXT, CONTINUED, RULELESS
         }
 
         override fun children() = listOf(numerator, denominator)
@@ -260,11 +260,17 @@ sealed class LatexNode {
     /**
      * 矩阵节点
      */
+    data class RowGap(
+        val number: Double,
+        val unit: String
+    )
+
     data class Matrix(
         val rows: List<List<LatexNode>>,
         val type: MatrixType = MatrixType.PLAIN,
         val isSmall: Boolean = false,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         enum class MatrixType {
             PLAIN, PAREN, BRACKET, BRACE, VBAR, DOUBLE_VBAR
@@ -284,7 +290,8 @@ sealed class LatexNode {
     data class Array(
         val rows: List<List<LatexNode>>,
         val alignment: String,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -590,7 +597,8 @@ sealed class LatexNode {
         val rows: List<List<LatexNode>>,
         val alignType: AlignType = AlignType.CENTER,
         val envName: String? = null,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         enum class AlignType { LEFT, CENTER, RIGHT }
 
@@ -610,7 +618,8 @@ sealed class LatexNode {
     data class Cases(
         val cases: List<Pair<LatexNode, LatexNode>>,
         val style: CasesStyle = CasesStyle.NORMAL,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         enum class CasesStyle { NORMAL, DISPLAY, RIGHT }
 
@@ -633,7 +642,8 @@ sealed class LatexNode {
      */
     data class Split(
         val rows: List<List<LatexNode>>,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -651,7 +661,8 @@ sealed class LatexNode {
     data class Multline(
         val lines: List<LatexNode>,
         val envName: String? = null,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         override fun children() = lines
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -667,7 +678,8 @@ sealed class LatexNode {
     data class Eqnarray(
         val rows: List<List<LatexNode>>,
         val envName: String? = null,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -755,6 +767,10 @@ sealed class LatexNode {
         val attributes: Map<String, String> = emptyMap(),
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
+        companion object {
+            internal const val BBOX_ATTRIBUTE = "\u0000bbox"
+        }
+
         enum class Notation(val mathMlName: String) {
             LONGDIV("longdiv"),
             ACTUARIAL("actuarial"),
@@ -1038,7 +1054,8 @@ sealed class LatexNode {
     data class Tabular(
         val rows: List<List<LatexNode>>,
         val alignment: String,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val rowGaps: List<RowGap?> = emptyList()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)

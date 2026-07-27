@@ -47,8 +47,8 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
          */
         private val TEXT_STOP_CHARS = BooleanArray(128).apply {
             for (ch in charArrayOf(
-                '\\', '{', '}', '[', ']', '^', '_', '&',
-                '\n', '\r', '(', ')', '|', '~', '%', '$',
+                '\\', '{', '}', '[', ']', '^', '\'', '_', '&',
+                '\n', '\r', '(', ')', '|', '.', '~', '%', '$',
                 ' ', '\t', '+', '-', '=', '<', '>', ',', ';', ':'
             )) {
                 this[ch.code] = true
@@ -116,6 +116,12 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                     tokens.add(LatexToken.Superscript(SourceRange(start, position)))
                 }
 
+                '\'' -> {
+                    val start = position
+                    advance()
+                    tokens.add(LatexToken.Prime(SourceRange(start, position)))
+                }
+
                 '_' -> {
                     val start = position
                     advance()
@@ -134,7 +140,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                     tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                     advance()
                 }
-                '(', ')', '|' -> {
+                '(', ')', '|', '.' -> {
                     val start = position
                     tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                     advance()
@@ -184,9 +190,9 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         val cmdStart = position
         if (position < input.length) {
             val firstChar = input[position]
-            if (firstChar.isLetter() || firstChar == '@') {
+            if (firstChar.isAsciiLetter() || firstChar == '@') {
                 position++
-                while (position < input.length && input[position].isLetter()) {
+                while (position < input.length && input[position].isAsciiLetter()) {
                     position++
                 }
             }
@@ -238,6 +244,8 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
             }
         }
     }
+
+    private fun Char.isAsciiLetter(): Boolean = this in 'a'..'z' || this in 'A'..'Z'
 
     private fun readEnvironmentName(): String? {
         skipWhitespace()
@@ -414,6 +422,11 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 advance()
                 tokens.add(LatexToken.Superscript(SourceRange(start, position)))
             }
+            '\'' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Prime(SourceRange(start, position)))
+            }
             '_' -> {
                 val start = position
                 advance()
@@ -430,7 +443,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                 advance()
             }
-            '(', ')', '|' -> {
+            '(', ')', '|', '.' -> {
                 val start = position
                 tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                 advance()
