@@ -15,7 +15,7 @@
 - **高性能解析**：基于 AST 的递归下降解析器，支持增量更新。
 - **多平台一致性**：使用 Compose Multiplatform 在 Android、iOS、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致渲染。
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
-- **图片导出**：将渲染结果导出为 PNG/JPEG/WEBP 图片，支持分辨率缩放配置。
+- **光栅与矢量导出**：支持 PNG/JPEG/WEBP 图片和与分辨率无关的 SVG 矢量输出。
 - **预测量 API**：同步预测量公式精确渲染尺寸（width/height/baseline），支持 Compose `InlineTextContent` 行内数学公式嵌入。
 - **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式自然语言描述。
 - **LaTeX → MathML**：将 LaTeX AST 转换为 Presentation MathML 输出。
@@ -296,7 +296,7 @@ fun MyScreen() {
 
 换行发生在数学上有效的位置：关系运算符（`=`、`<`、`>`），然后是加法运算符（`+`、`-`），然后是乘法运算符（`×`、`÷`）。分数、根号、矩阵等原子结构不会被拆分。
 
-### 图片导出
+### 光栅图片与 SVG 矢量导出
 
 将渲染后的 LaTeX 公式导出为 PNG、JPEG 或 WEBP 图片。在 Composable 作用域中使用 `rememberLatexExporter()` 创建导出器，然后在后台线程中调用 `export()` 方法：
 
@@ -347,6 +347,31 @@ fun MyScreen() {
 | `format` | `ImageFormat` | `PNG` | `ImageFormat.PNG`、`ImageFormat.JPEG` 或 `ImageFormat.WEBP` |
 | `transparentBackground` | `Boolean` | `false` | 是否使用透明背景（PNG 和 WEBP 支持；JPEG 始终使用不透明背景） |
 | `quality` | `Int` | `90` | JPEG 和 WEBP 的压缩质量（1–100，PNG 忽略此参数） |
+
+高清印刷、响应式 Web 嵌入或其他无损缩放场景使用 `exportSvg()`。它与屏幕渲染复用同一套
+测量和绘制管线，输出 path、线条等原生矢量元素，不会把位图包装进 SVG：
+
+```kotlin
+val svgResult = exporter.exportSvg(
+    latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
+    exportConfig = SvgExportConfig(
+        transparentBackground = true,
+        textMode = SvgTextMode.PATH
+    )
+)
+
+val svg = svgResult?.svg        // 可直接嵌入 Web 的 SVG 文本
+val svgBytes = svgResult?.bytes // 可保存或分享的 UTF-8 字节
+```
+
+`SvgExportConfig` 与光栅参数刻意分离：
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `scale` | `Float` | `1f` | 调整 SVG viewport 和公式尺寸；结果仍与分辨率无关 |
+| `transparentBackground` | `Boolean` | `true` | 透明背景；关闭时使用 `LatexConfig` 解析后的背景色 |
+| `textMode` | `SvgTextMode` | `PATH` | `PATH` 输出可移植字形轮廓；`TEXT` 更小且可选择，但需由使用方提供匹配字体 |
+| `prettyPrint` | `Boolean` | `true` | 是否格式化生成的 XML |
 
 ### 无障碍支持
 

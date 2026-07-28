@@ -48,6 +48,9 @@ import com.hrm.latex.renderer.Latex
 import com.hrm.latex.renderer.export.ExportConfig
 import com.hrm.latex.renderer.export.ExportResult
 import com.hrm.latex.renderer.export.ImageFormat
+import com.hrm.latex.renderer.export.SvgExportConfig
+import com.hrm.latex.renderer.export.SvgExportResult
+import com.hrm.latex.renderer.export.SvgTextMode
 import com.hrm.latex.renderer.export.rememberLatexExporter
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexTheme
@@ -59,6 +62,19 @@ import kotlinx.coroutines.withContext
  * 导出功能预览分组
  */
 val exportPreviewGroups = listOf(
+    PreviewGroup(
+        id = "export_svg",
+        title = "SVG 矢量导出",
+        description = "原生矢量命令输出，支持字形路径与可选择文本模式",
+        items = listOf(
+            PreviewItem(
+                id = "export_svg_modes",
+                title = "SVG PATH / TEXT 模式",
+                latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
+                content = { SvgExportPreviewCard() }
+            )
+        )
+    ),
     PreviewGroup(
         id = "export_basic",
         title = "PNG 导出",
@@ -186,6 +202,70 @@ val exportPreviewGroups = listOf(
         )
     )
 )
+
+@Composable
+private fun SvgExportPreviewCard() {
+    val latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}"
+    val config = LatexConfig(theme = LatexTheme.material3())
+    val exporter = rememberLatexExporter(config)
+    val scope = rememberCoroutineScope()
+    var pathResult by remember { mutableStateOf<SvgExportResult?>(null) }
+    var textResult by remember { mutableStateOf<SvgExportResult?>(null) }
+    var isExporting by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Latex(latex = latex, config = config)
+
+        Button(
+            onClick = {
+                isExporting = true
+                scope.launch {
+                    pathResult = withContext(Dispatchers.Default) {
+                        exporter.exportSvg(latex = latex, config = config)
+                    }
+                    textResult = withContext(Dispatchers.Default) {
+                        exporter.exportSvg(
+                            latex = latex,
+                            config = config,
+                            exportConfig = SvgExportConfig(textMode = SvgTextMode.TEXT)
+                        )
+                    }
+                    isExporting = false
+                }
+            },
+            enabled = !isExporting
+        ) {
+            Text(if (isExporting) "导出中..." else "导出 SVG PATH / TEXT")
+        }
+
+        pathResult?.let { result -> SvgResultSummary("PATH（独立可移植）", result) }
+        textResult?.let { result -> SvgResultSummary("TEXT（可选择）", result) }
+    }
+}
+
+@Composable
+private fun SvgResultSummary(label: String, result: SvgExportResult) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                "$label: ${result.width} x ${result.height} | ${result.bytes.size} bytes",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                result.svg.take(180).replace('\n', ' ') + if (result.svg.length > 180) "…" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 /**
  * 单个公式的导出预览卡片

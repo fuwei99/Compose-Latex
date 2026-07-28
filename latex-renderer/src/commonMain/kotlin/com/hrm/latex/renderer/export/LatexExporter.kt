@@ -23,6 +23,7 @@
 package com.hrm.latex.renderer.export
 
 import androidx.compose.ui.graphics.ImageBitmap
+import com.hrm.latex.renderer.model.LatexConfig
 
 /**
  * 导出图片格式
@@ -31,6 +32,71 @@ enum class ImageFormat {
     PNG,
     JPEG,
     WEBP
+}
+
+/**
+ * SVG 中数学文本的输出方式。
+ */
+enum class SvgTextMode {
+    /**
+     * 将字形轮廓写成 SVG path。文件可独立分发，且不会因目标环境缺少 KaTeX 字体而变形。
+     */
+    PATH,
+
+    /**
+     * 保留 SVG text。文件更小且文字可选择，但显示端必须提供公式使用的字体。
+     */
+    TEXT
+}
+
+/**
+ * SVG 矢量导出配置。
+ *
+ * SVG 与光栅导出使用独立配置，避免把像素压缩质量等无意义参数带入矢量 API。
+ *
+ * @property scale 输出画布和字号的缩放倍率。SVG 本身与分辨率无关，通常保持 1 即可；
+ *   需要特定物理尺寸时可以调整该值
+ * @property transparentBackground 是否输出透明背景；false 时使用 [LatexConfig] 解析后的背景色
+ * @property textMode 字形路径或可选择文本
+ * @property prettyPrint 是否格式化 SVG XML
+ */
+data class SvgExportConfig(
+    val scale: Float = 1f,
+    val transparentBackground: Boolean = true,
+    val textMode: SvgTextMode = SvgTextMode.PATH,
+    val prettyPrint: Boolean = true
+)
+
+/**
+ * SVG 矢量导出结果。
+ *
+ * @property svg UTF-8 SVG 文本，可直接写入 `.svg` 文件或嵌入 Web 页面
+ * @property bytes 与 [svg] 相同内容的 UTF-8 字节
+ * @property width SVG viewport 宽度
+ * @property height SVG viewport 高度
+ */
+data class SvgExportResult(
+    val svg: String,
+    val bytes: ByteArray,
+    val width: Int,
+    val height: Int
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is SvgExportResult) return false
+        return svg == other.svg &&
+                bytes.contentEquals(other.bytes) &&
+                width == other.width &&
+                height == other.height
+    }
+
+    override fun hashCode(): Int {
+        var result = svg.hashCode()
+        result = 31 * result + bytes.contentHashCode()
+        result = 31 * result + width
+        result = 31 * result + height
+        return result
+    }
 }
 
 /**

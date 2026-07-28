@@ -47,10 +47,10 @@ import kotlin.math.ceil
 private const val TAG = "LatexExporter"
 
 /**
- * LaTeX 图片导出器
+ * LaTeX 光栅与 SVG 矢量导出器
  *
  * 在 Composable 作用域中使用 [rememberLatexExporter] 创建实例。
- * 提供统一的 [export] 方法将 LaTeX 渲染并编码为图片。
+ * 提供 [export] 光栅导出和 [exportSvg] 原生矢量导出。
  *
  * 导出原理：使用放大后的 fontSize 重新执行完整的 Measure → Draw 流程，
  * 通过 [LatexRenderer] 与 Latex Composable 共享完全相同的测量和绘制逻辑，
@@ -90,6 +90,7 @@ class LatexExporterState internal constructor(
     private val textMeasurer: androidx.compose.ui.text.TextMeasurer,
     private val fontFamilies: LatexFontFamilies
 ) {
+    // 复用解析器实例，保持原有导出路径的分配特征；每次独立导出前清空输入状态。
     private val parser = IncrementalLatexParser()
 
     /**
@@ -120,24 +121,11 @@ class LatexExporterState internal constructor(
         if (latex.isBlank()) return null
 
         return try {
-            val document = parseLatex(latex)
-            if (document.children.isEmpty()) return null
-
             val scale = exportConfig.scale.coerceIn(0.5f, 8f)
             val format = exportConfig.format
             val quality = exportConfig.quality.coerceIn(1, 100)
-            // 核心：用放大后的 fontSize 创建渲染上下文，而非用 Canvas scale
-            // 这样 TextMeasurer 会以目标字号测量文本，字体引擎以正确字号光栅化
-            val scaledConfig = config.copy(fontSize = config.fontSize * scale)
-            val context = scaledConfig.toContext(isDarkTheme, fontFamilies)
-            val resolvedThemeColors = scaledConfig.resolveThemeColors(isDarkTheme)
-
-            // 使用 LatexRenderer 共享逻辑进行测量（与 LatexDocument 同一份代码）
-            val renderResult = LatexRenderer.measure(
-                document.children, context, textMeasurer, density
-            )
-
-            if (renderResult.layout.width <= 0f || renderResult.layout.height <= 0f) return null
+            val prepared = prepare(latex, config, scale, isDarkTheme) ?: return null
+            val renderResult = prepared.renderResult
 
             val bitmapWidth = ceil(renderResult.canvasWidth).toInt().coerceAtLeast(1)
             val bitmapHeight = ceil(renderResult.canvasHeight).toInt().coerceAtLeast(1)
@@ -152,7 +140,7 @@ class LatexExporterState internal constructor(
             val backgroundColor = if (useTransparent) {
                 Color.Transparent
             } else {
-                resolvedThemeColors.backgroundColor
+                prepared.backgroundColor
             }
 
             // 使用 LatexRenderer 共享逻辑进行绘制（与 LatexDocument 同一份代码）
@@ -183,6 +171,94 @@ class LatexExporterState internal constructor(
             null
         }
     }
+
+    /**
+     * 将 LaTeX 字符串导出为原生 SVG 矢量文档。
+     *
+     * 此方法与 [export] 共用同一个 Parser → Measure → Draw 管线；不同之处仅在于最终
+     * Canvas 后端，因此线条、曲线和默认的文字字形都保留为矢量元素，不会嵌入位图。
+     *
+     * 默认 [SvgTextMode.PATH] 会把字形轮廓写成 path，最适合打印、独立文件和 Web 嵌入。
+     * [SvgTextMode.TEXT] 文件更小、文字可选择，但使用方需要提供对应的 KaTeX 字体。
+     */
+    fun exportSvg(
+        latex: String,
+        config: LatexConfig = LatexConfig(),
+        exportConfig: SvgExportConfig = SvgExportConfig(),
+        isDarkTheme: Boolean = false
+    ): SvgExportResult? {
+        if (latex.isBlank()) return null
+
+        return try {
+            val scale = exportConfig.scale.coerceIn(0.1f, 16f)
+            val prepared = prepare(latex, config, scale, isDarkTheme) ?: return null
+            val renderResult = prepared.renderResult
+            val width = ceil(renderResult.canvasWidth).toInt().coerceAtLeast(1)
+            val height = ceil(renderResult.canvasHeight).toInt().coerceAtLeast(1)
+            val backgroundColor = if (exportConfig.transparentBackground) {
+                Color.Transparent
+            } else {
+                prepared.backgroundColor
+            }
+
+            val bytes = renderToSvg(
+                width = width.toFloat(),
+                height = height.toFloat(),
+                textAsPath = exportConfig.textMode == SvgTextMode.PATH,
+                prettyPrint = exportConfig.prettyPrint
+            ) { canvas ->
+                val drawScope = CanvasDrawScope()
+                drawScope.draw(
+                    density = density,
+                    layoutDirection = LayoutDirection.Ltr,
+                    canvas = canvas,
+                    size = Size(width.toFloat(), height.toFloat())
+                ) {
+                    with(LatexRenderer) {
+                        draw(renderResult, backgroundColor)
+                    }
+                }
+            } ?: return null
+
+            SvgExportResult(
+                svg = bytes.decodeToString(),
+                bytes = bytes,
+                width = width,
+                height = height
+            )
+        } catch (e: Exception) {
+            HLog.e(TAG, "SVG 导出失败", e)
+            null
+        }
+    }
+
+    private fun prepare(
+        latex: String,
+        config: LatexConfig,
+        scale: Float,
+        isDarkTheme: Boolean
+    ): PreparedExport? {
+        val document = parseLatex(latex)
+        if (document.children.isEmpty()) return null
+
+        // 以目标字号重新测量，而不是缩放已栅格化结果；光栅和矢量后端均共享此行为。
+        val scaledConfig = config.copy(fontSize = config.fontSize * scale)
+        val context = scaledConfig.toContext(isDarkTheme, fontFamilies)
+        val renderResult = LatexRenderer.measure(
+            document.children, context, textMeasurer, density
+        )
+        if (renderResult.layout.width <= 0f || renderResult.layout.height <= 0f) return null
+
+        return PreparedExport(
+            renderResult = renderResult,
+            backgroundColor = scaledConfig.resolveThemeColors(isDarkTheme).backgroundColor
+        )
+    }
+
+    private class PreparedExport(
+        val renderResult: com.hrm.latex.renderer.layout.LatexRenderResult,
+        val backgroundColor: Color
+    )
 
     private fun parseLatex(latex: String): LatexNode.Document {
         return try {

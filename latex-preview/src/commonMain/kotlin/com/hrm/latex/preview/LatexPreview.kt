@@ -119,9 +119,9 @@ val previewCategories = listOf(
     ),
     PreviewCategory(
         id = "export",
-        title = "导出图片",
-        description = "将 LaTeX 公式导出为 PNG 图片",
-        icon = "📸",
+        title = "光栅 / 矢量导出",
+        description = "导出 PNG/JPEG/WEBP 图片或 SVG 矢量文档",
+        icon = "🖼️",
         groups = exportPreviewGroups
     ),
     PreviewCategory(

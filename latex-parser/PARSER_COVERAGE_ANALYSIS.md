@@ -540,7 +540,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `highlight API` HighlightConfig + HighlightRange 支持子表达式视觉高亮
 - ✅ `conversion API` MathMLVisitor：Presentation MathML 输出
 - ✅ `animation API` AnimatedLatex 组件：crossfade / slide / fade+slide 过渡
-- ✅ `export API` rememberLatexExporter()：渲染结果导出为 PNG/JPEG/WEBP 图片格式
+- ✅ `export API` rememberLatexExporter()：渲染结果导出为 PNG/JPEG/WEBP 光栅图片或 SVG 原生矢量格式；SVG 支持字形 PATH/TEXT 模式、透明背景和统一 viewBox
 - ✅ `measure API` rememberLatexMeasurer()：预测量公式精确渲染尺寸，用于 Compose InlineTextContent 行内嵌入
 - ✅ `cursor/input API` 所见即所得编辑器支持（位于 `latex-renderer/editor/` 子包）
 - ✅ `diagnostics API` parseWithDiagnostics()：结构化诊断（8 种分类，按严重级别过滤）
@@ -552,7 +552,7 @@ x^{\sum_{i=1}^{n}}
 ### ❌ 缺失
 - 无
 
-**覆盖率**: 13/13 (100%) ✅
+**覆盖率**: 14/14 (100%) ✅
 
 ---
 
@@ -673,10 +673,6 @@ x^{\sum_{i=1}^{n}}
 ---
 
 ### 🔵 P0 — 增值能力 / 工程级扩展
-
-#### ❌ LaTeX → SVG 矢量导出
-- **方向**: 将渲染结果导出为 SVG 矢量格式，补充已有的 PNG/JPEG/WEBP 光栅导出能力
-- **场景**: 高清印刷、Web 嵌入、矢量图形保真输出
 
 #### ❌ TikZ/PGF 基础绘图（简化子集）
 - **场景**: 在公式中嵌入简单的坐标系、函数图像

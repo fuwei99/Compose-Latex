@@ -15,7 +15,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **High-Performance Parsing**: AST-based recursive descent parser with support for incremental updates.
 - **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, Desktop (JVM), and Web (Wasm/JS).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
-- **Image Export**: Export rendered formulas as PNG/JPEG/WEBP images with configurable resolution scaling.
+- **Raster & Vector Export**: Export formulas as PNG/JPEG/WEBP images or resolution-independent SVG vectors.
 - **Pre-measurement API**: Synchronous pre-measurement of formula dimensions (width/height/baseline) for Compose `InlineTextContent` inline math embedding.
 - **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions (MathSpeak).
 - **LaTeX → MathML**: Convert LaTeX AST to Presentation MathML output.
@@ -297,7 +297,7 @@ fun MyScreen() {
 
 Line breaks occur at mathematically valid points: relation operators (`=`, `<`, `>`), then additive operators (`+`, `-`), then multiplicative operators (`×`, `÷`). Atomic structures like fractions, roots, and matrices are never broken.
 
-### Image Export
+### Raster and SVG Export
 
 Export rendered LaTeX formulas as PNG, JPEG, or WEBP images. Use `rememberLatexExporter()` in a Composable scope, then call `export()` on a background thread:
 
@@ -348,6 +348,32 @@ fun MyScreen() {
 | `format` | `ImageFormat` | `PNG` | `ImageFormat.PNG`, `ImageFormat.JPEG`, or `ImageFormat.WEBP` |
 | `transparentBackground` | `Boolean` | `false` | Use transparent background (PNG and WEBP only; JPEG always uses opaque background) |
 | `quality` | `Int` | `90` | Compression quality (1–100) for JPEG and WEBP; ignored for PNG |
+
+For print, responsive Web embedding, or resolution-independent output, use `exportSvg()`. It
+reuses the exact same measure-and-draw pipeline as on-screen rendering and emits vector paths,
+lines, and shapes—never a raster image wrapped in SVG:
+
+```kotlin
+val svgResult = exporter.exportSvg(
+    latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
+    exportConfig = SvgExportConfig(
+        transparentBackground = true,
+        textMode = SvgTextMode.PATH
+    )
+)
+
+val svg = svgResult?.svg       // SVG text for Web embedding
+val svgBytes = svgResult?.bytes // UTF-8 bytes for saving or sharing
+```
+
+`SvgExportConfig` is intentionally separate from raster options:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `scale` | `Float` | `1f` | Changes the SVG viewport and formula size; SVG remains resolution-independent |
+| `transparentBackground` | `Boolean` | `true` | Transparent output, or the resolved `LatexConfig` background |
+| `textMode` | `SvgTextMode` | `PATH` | `PATH` embeds portable glyph outlines; `TEXT` is smaller/selectable but requires matching fonts |
+| `prettyPrint` | `Boolean` | `true` | Format the generated XML |
 
 ### Accessibility
 
