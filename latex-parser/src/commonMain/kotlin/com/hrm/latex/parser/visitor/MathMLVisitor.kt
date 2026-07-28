@@ -254,6 +254,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE -> "⇐"
             LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "⇔"
             LatexNode.ExtensibleArrow.Direction.MAPSTO -> "↦"
+            LatexNode.ExtensibleArrow.Direction.EQUAL -> "="
         }
         val arrow = "<mo stretchy=\"true\">$arrowChar</mo>"
         val above = visit(node.content)

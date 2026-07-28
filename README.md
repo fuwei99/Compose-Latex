@@ -25,7 +25,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Structured Diagnostics**: `parseWithDiagnostics()` provides 8-category structured diagnostics with severity filtering.
 - **RTL Support**: Complete right-to-left text direction support (`\RLE`, `\LRE`, RTL/LTR environments, nesting).
 
-## 📐 Supported LaTeX Features (381+)
+## 📐 Supported LaTeX Features (394+)
 
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials, scripts</summary>
@@ -72,13 +72,13 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Accents & Decorations (35)</b> — accents, cancels, extensible arrows, stacking, bracket annotations</summary>
+<summary><b>Accents & Decorations (36)</b> — accents, cancels, extensible arrows, stacking, bracket annotations</summary>
 
 - **Accents**: `\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
 - **Brace annotations**: `\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
 - **Arrow decorations**: `\overrightarrow`, `\overleftarrow`
 - **Cancel lines**: `\cancel`, `\bcancel` (reverse), `\xcancel` (cross)
-- **Extensible arrows**: `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`
+- **Extensible arrows and equals**: `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`, `\xlongequal`
 - **Stacking**: `\overset`, `\underset`, `\stackrel`
 </details>
 
@@ -132,14 +132,22 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Special Effects & Layout (15)</b></summary>
+<summary><b>Special Effects & Layout (17)</b></summary>
 
 - **Boxes**: `\boxed{E=mc^2}`, `\fbox{text}`
-- **Menclose / enclose**: `\enclose{circle}{x}`, `\enclose{circle,box}{x}`, `\enclose{updiagonalstrike downdiagonalstrike}{x}`
+- **Menclose / enclose**: `\enclose{circle}{x}`, `\enclose{circle,box}{x}`, `\enclose{updiagonalstrike downdiagonalstrike}{x}`, `\circled{1}`
 - **Supported notations**: `box`, `roundedbox`, `circle`, `left`, `right`, `top`, `bottom`, `updiagonalstrike`, `downdiagonalstrike`, `verticalstrike`, `horizontalstrike`
 - **Supported attributes**: `mathcolor`, `mathbackground`
-- **Phantoms & spacing**: `\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **Phantoms & spacing**: `\phantom`, `\smash`, `\vphantom`, `\hphantom`, `\mathstrut`
 - **Zero-width overlaps**: `\mathclap{content}`, `\mathllap{content}`, `\mathrlap{content}`
+</details>
+
+<details>
+<summary><b>Physics & SI Units (10)</b> — common physics and siunitx package subsets</summary>
+
+- **Derivatives**: `\dv{x}`, `\dv{f}{x}`, `\dv[2]{f}{x}`, and the corresponding `\pdv` forms
+- **Dirac notation and delimiters**: `\bra{x}`, `\ket{x}`, `\braket{a|b}`, `\abs{x}`, `\norm{x}`
+- **Numbers and units**: `\SI{9.8}{m/s^2}`, `\si{kg.m/s^2}`, `\num{1.23e4}`
 </details>
 
 <details>

@@ -39,6 +39,19 @@ private val bboxBorderPattern =
  * 特殊效果命令：\boxed, \enclose, \phantom, \smash, \vphantom, \hphantom, \not
  */
 internal fun CommandRegistry.installSpecialEffectHandlers() {
+    register("mathstrut") { _, _, _ ->
+        // TeX's \mathstrut has the height/depth of "(" but no horizontal width.
+        LatexNode.VPhantom(listOf(LatexNode.Text("(")))
+    }
+
+    register("circled") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Enclose(
+            content = unwrapContent(arg),
+            notations = listOf(LatexNode.Enclose.Notation.CIRCLE)
+        )
+    }
+
     register("boxed") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         val content = unwrapContent(arg)

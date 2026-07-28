@@ -40,6 +40,7 @@ internal fun CommandRegistry.installArrowAndStackHandlers() {
         "xLeftarrow" to LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE,
         "xLeftrightarrow" to LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE,
         "xmapsto" to LatexNode.ExtensibleArrow.Direction.MAPSTO,
+        "xlongequal" to LatexNode.ExtensibleArrow.Direction.EQUAL,
     )
 
     for ((cmd, direction) in arrowMapping) {

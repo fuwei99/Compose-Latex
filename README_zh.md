@@ -25,7 +25,7 @@
 - **结构化诊断**：`parseWithDiagnostics()` 提供 8 种分类的结构化诊断信息，按严重级别过滤。
 - **RTL 支持**：完整的从右到左文本方向支持（`\RLE`、`\LRE`、RTL/LTR 环境，支持嵌套）。
 
-## 📐 已支持的 LaTeX 功能（381+）
+## 📐 已支持的 LaTeX 功能（394+）
 
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式、上下标</summary>
@@ -72,13 +72,13 @@
 </details>
 
 <details>
-<summary><b>装饰符号（35）</b> — 重音、取消线、可扩展箭头、堆叠、括号标注</summary>
+<summary><b>装饰符号（36）</b> — 重音、取消线、可扩展箭头、堆叠、括号标注</summary>
 
 - **重音符号**：`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
 - **大括号标注**：`\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
 - **箭头装饰**：`\overrightarrow`, `\overleftarrow`
 - **取消线**：`\cancel`, `\bcancel`（反向）, `\xcancel`（交叉）
-- **可扩展箭头**：`\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`
+- **可扩展箭头与等号**：`\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`, `\xlongequal`
 - **堆叠**：`\overset`, `\underset`, `\stackrel`
 </details>
 
@@ -132,14 +132,22 @@
 </details>
 
 <details>
-<summary><b>特殊效果与布局（15）</b></summary>
+<summary><b>特殊效果与布局（17）</b></summary>
 
 - **方框**：`\boxed{E=mc^2}`, `\fbox{text}`
-- **Menclose / enclose**：`\enclose{circle}{x}`, `\enclose{circle,box}{x}`, `\enclose{updiagonalstrike downdiagonalstrike}{x}`
+- **Menclose / enclose**：`\enclose{circle}{x}`, `\enclose{circle,box}{x}`, `\enclose{updiagonalstrike downdiagonalstrike}{x}`, `\circled{1}`
 - **已支持 notation**：`box`, `roundedbox`, `circle`, `left`, `right`, `top`, `bottom`, `updiagonalstrike`, `downdiagonalstrike`, `verticalstrike`, `horizontalstrike`
 - **已支持 attributes**：`mathcolor`, `mathbackground`
-- **幻影与间距**：`\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **幻影与间距**：`\phantom`, `\smash`, `\vphantom`, `\hphantom`, `\mathstrut`
 - **零宽叠加**：`\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
+</details>
+
+<details>
+<summary><b>物理与 SI 单位（10）</b> — physics 与 siunitx 常用子集</summary>
+
+- **导数简写**：`\dv{x}`, `\dv{f}{x}`, `\dv[2]{f}{x}` 以及对应的 `\pdv` 形式
+- **狄拉克符号与定界符**：`\bra{x}`, `\ket{x}`, `\braket{a|b}`, `\abs{x}`, `\norm{x}`
+- **数字与单位**：`\SI{9.8}{m/s^2}`, `\si{kg.m/s^2}`, `\num{1.23e4}`
 </details>
 
 <details>

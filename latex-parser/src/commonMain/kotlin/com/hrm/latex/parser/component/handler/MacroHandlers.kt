@@ -36,8 +36,7 @@ private const val TAG = "MacroHandlers"
 internal fun CommandRegistry.installMacroHandlers() {
     // \newcommand, \renewcommand
     val newCommandHandler = CommandHandler { _, ctx, stream ->
-        val nameArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val commandName = ParseUtils.extractCommandName(nameArg)
+        val commandName = parseCommandName(stream) ?: return@CommandHandler LatexNode.Text("")
 
         // 可选参数 [numArgs]
         var numArgs = 0
@@ -111,8 +110,7 @@ internal fun CommandRegistry.installMacroHandlers() {
 
     // \DeclareMathOperator
     register("DeclareMathOperator") { _, ctx, _ ->
-        val nameArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
-        val commandName = ParseUtils.extractCommandName(nameArg)
+        val commandName = parseCommandName(ctx.tokenStream) ?: return@register LatexNode.Text("")
 
         val opArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
         val operatorName = when (opArg) {
@@ -179,4 +177,30 @@ internal fun CommandRegistry.installMacroHandlers() {
     }
 
     register("newenvironment", "renewenvironment", handler = newEnvHandler)
+}
+
+/**
+ * Reads the control sequence being defined without dispatching it as a command.
+ * This is important when a user intentionally overrides a built-in command,
+ * for example `\newcommand{\abs}[1]{...}`.
+ */
+private fun parseCommandName(stream: com.hrm.latex.parser.component.LatexTokenStream): String? {
+    while (stream.peek() is LatexToken.Whitespace) stream.advance()
+    val grouped = stream.peek() is LatexToken.LeftBrace
+    if (grouped) {
+        stream.advance()
+        while (stream.peek() is LatexToken.Whitespace) stream.advance()
+    }
+
+    val name = when (val token = stream.advance()) {
+        is LatexToken.Command -> token.name
+        is LatexToken.Text -> token.content.removePrefix("\\").trim()
+        else -> null
+    }
+
+    if (grouped) {
+        while (stream.peek() is LatexToken.Whitespace) stream.advance()
+        if (stream.peek() is LatexToken.RightBrace) stream.advance()
+    }
+    return name?.takeIf { it.isNotEmpty() }
 }

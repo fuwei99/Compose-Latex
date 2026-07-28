@@ -194,6 +194,7 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE -> "double left arrow"
             LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "double bidirectional arrow"
             LatexNode.ExtensibleArrow.Direction.MAPSTO -> "maps to"
+            LatexNode.ExtensibleArrow.Direction.EQUAL -> "long equals"
         }
         return buildString {
             append(dir)

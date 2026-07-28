@@ -1281,6 +1281,21 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("7", "混合标题层级", "\\section{Title} \\subsection{Subtitle}"),
         )
     ),
+    PreviewGroup(
+        id = "package_subsets",
+        title = "25. physics / siunitx 常用子集",
+        description = "长等号、圈注、数学支架、导数、狄拉克符号与 SI 单位",
+        items = listOf(
+            PreviewItem("1", "可扩展长等号", "A \\xlongequal[below]{condition} B"),
+            PreviewItem("2", "圈注与数学支架", "\\circled{1} + a\\mathstrut + b"),
+            PreviewItem("3", "常微分", "\\dv[2]{f}{x} + \\dv{x}"),
+            PreviewItem("4", "偏微分", "\\pdv{f}{x} + \\pdv[2]{f}{y}"),
+            PreviewItem("5", "狄拉克符号", "\\bra{\\psi} \\ket{\\phi} \\braket{\\psi|\\phi}"),
+            PreviewItem("6", "绝对值与范数", "\\abs{x} + \\norm{v}"),
+            PreviewItem("7", "SI 数值与单位", "\\SI{9.8}{m/s^2}"),
+            PreviewItem("8", "单位与科学计数法", "\\si{kg.m/s^2} \\quad \\num{1.23e4}"),
+        )
+    ),
 )
 
 @Preview

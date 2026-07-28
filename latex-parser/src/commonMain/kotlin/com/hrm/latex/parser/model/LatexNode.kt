@@ -452,7 +452,7 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class Direction {
             RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT,
-            RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO
+            RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO, EQUAL
         }
 
         override fun children() = listOfNotNull(content, below)

@@ -114,7 +114,8 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         // 双线箭头不画中间单线（strokePaths 中已包含双平行线）
         val isDoubleLine = node.direction == LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
-                node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE
+                node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE ||
+                node.direction == LatexNode.ExtensibleArrow.Direction.EQUAL
 
         return NodeLayout(totalWidth, vertical.totalHeight, vertical.baseline) { x, y ->
             // 绘制上方文字
@@ -313,6 +314,18 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
                 strokePaths.add(Path().apply {
                     moveTo(startX, centerY - headSize / 2)
                     lineTo(startX, centerY + headSize / 2)
+                })
+            }
+
+            LatexNode.ExtensibleArrow.Direction.EQUAL -> {
+                val gap = headSize * 0.25f
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY - gap)
+                    lineTo(endX, centerY - gap)
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY + gap)
+                    lineTo(endX, centerY + gap)
                 })
             }
         }
