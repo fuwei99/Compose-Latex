@@ -541,7 +541,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `conversion API` MathMLVisitor：Presentation MathML 输出
 - ✅ `animation API` AnimatedLatex 组件：crossfade / slide / fade+slide 过渡
 - ✅ `export API` rememberLatexExporter()：渲染结果导出为 PNG/JPEG/WEBP 光栅图片或 SVG 原生矢量格式；SVG 支持字形 PATH/TEXT 模式、透明背景和统一 viewBox
-- ✅ `measure API` rememberLatexMeasurer()：预测量公式精确渲染尺寸，用于 Compose InlineTextContent 行内嵌入
+- ✅ `measure / inline content API` rememberLatexMeasurer()：支持预测量公式精确渲染尺寸；`LatexMeasurerState.inlineContent()` 进一步封装 `Placeholder` 和渲染内容，可配合 Compose `appendInlineContent()` 与普通 `Text` 实现富文本公式混排，适用于聊天、笔记等行内公式场景
 - ✅ `cursor/input API` 所见即所得编辑器支持（位于 `latex-renderer/editor/` 子包）
 - ✅ `diagnostics API` parseWithDiagnostics()：结构化诊断（8 种分类，按严重级别过滤）
 - ✅ 错误指示渲染：用 `errorColor` 标记无法识别的命令，而非静默降级
@@ -710,10 +710,6 @@ x^{\sum_{i=1}^{n}}
 #### ❌ LaTeX → Unicode 纯文本转换
 - **方向**: 将公式转为 Unicode 近似文本（如 `\frac{1}{2}` → `½`，`x^2` → `x²`）
 - **场景**: 复制到剪贴板、IM 消息发送
-
-#### ❌ Compose 富文本混排 API
-- **方向**: `InlineLatex` 组件 — 在普通 Compose `Text` 中无缝嵌入 LaTeX 公式片段（基于已有 `rememberLatexMeasurer` 进一步封装）
-- **场景**: 聊天应用、笔记应用中的行内公式
 
 #### ❌ 语法补全/提示 API
 - **方向**: 为 WYSIWYG 编辑器提供命令自动补全、括号匹配提示
