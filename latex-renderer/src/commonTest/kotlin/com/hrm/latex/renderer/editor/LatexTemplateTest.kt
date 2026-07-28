@@ -24,6 +24,7 @@ package com.hrm.latex.renderer.editor
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class LatexTemplateTest {
 
@@ -107,12 +108,11 @@ class LatexTemplateTest {
     @Test
     fun should_have_all_templates_with_non_empty_names() {
         LatexTemplate.entries.forEach { template ->
-            assert(template.displayName.isNotEmpty()) {
-                "Template ${template.name} has empty displayName"
-            }
-            assert(template.icon.isNotEmpty()) {
-                "Template ${template.name} has empty icon"
-            }
+            assertTrue(
+                template.displayName.isNotEmpty(),
+                "Template ${template.name} has empty displayName",
+            )
+            assertTrue(template.icon.isNotEmpty(), "Template ${template.name} has empty icon")
         }
     }
 
@@ -120,15 +120,18 @@ class LatexTemplateTest {
     fun should_expand_all_templates_to_non_empty_text() {
         LatexTemplate.entries.forEach { template ->
             val expansion = template.expand()
-            assert(expansion.text.isNotEmpty()) {
-                "Template ${template.name} expanded to empty text"
-            }
-            assert(expansion.cursorDelta >= 0) {
-                "Template ${template.name} has negative cursorDelta"
-            }
-            assert(expansion.cursorDelta <= expansion.text.length) {
-                "Template ${template.name} cursorDelta exceeds text length"
-            }
+            assertTrue(
+                expansion.text.isNotEmpty(),
+                "Template ${template.name} expanded to empty text",
+            )
+            assertTrue(
+                expansion.cursorDelta >= 0,
+                "Template ${template.name} has negative cursorDelta",
+            )
+            assertTrue(
+                expansion.cursorDelta <= expansion.text.length,
+                "Template ${template.name} cursorDelta exceeds text length",
+            )
         }
     }
 }

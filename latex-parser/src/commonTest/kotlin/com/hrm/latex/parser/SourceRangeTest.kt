@@ -269,7 +269,8 @@ class SourceRangeTest {
         val leaf = SourceMapper.leafNodeAt(doc, 0)
         assertNotNull(leaf)
         assertTrue(leaf is LatexNode.Text)
-        assertEquals("x+y", (leaf as LatexNode.Text).content)
+        // Operators are tokenized separately so offset 0 belongs to the `x` leaf.
+        assertEquals("x", (leaf as LatexNode.Text).content)
     }
 
     @Test

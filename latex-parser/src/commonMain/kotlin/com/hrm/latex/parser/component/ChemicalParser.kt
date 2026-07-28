@@ -73,58 +73,10 @@ internal class ChemicalParser(private val context: LatexParserContext) {
 
             when (token) {
                 is LatexToken.Text -> {
-                    tokenStream.advance()
-
-                    // 特殊处理: 检查 "-" 后面是否跟着 ">"
-                    if (token.content == "-" && !tokenStream.isEOF()) {
-                        val nextToken = tokenStream.peek()
-                        if (nextToken is LatexToken.Text && nextToken.content.startsWith(">")) {
-                            // 合并 "-> "
-                            tokenStream.advance()
-                            val arrowText = "-" + nextToken.content
-                            parseChemicalText(arrowText, nodes, expectCoefficient)
-                            expectCoefficient = false
-                            continue
-                        }
-                    }
-
-                    // 特殊处理: 检查 "<" 后面是否跟着 "->" 或 "=>"
-                    if (token.content == "<" && !tokenStream.isEOF()) {
-                        val nextToken = tokenStream.peek()
-                        if (nextToken is LatexToken.Text) {
-                            if (nextToken.content.startsWith("->") || nextToken.content.startsWith("=>")) {
-                                // 合并 "<->" 或 "<=>"
-                                tokenStream.advance()
-                                val arrowText = "<" + nextToken.content
-                                parseChemicalText(arrowText, nodes, expectCoefficient)
-                                expectCoefficient = false
-                                continue
-                            } else if (nextToken.content.startsWith("-") || nextToken.content.startsWith(
-                                    "="
-                                )
-                            ) {
-                                // 处理 "<-" 或 "<=" 后面可能跟 ">" 的情况
-                                tokenStream.advance()
-                                var arrowText = "<" + nextToken.content
-                                // 继续检查下一个 token 是否为 ">"
-                                if (!tokenStream.isEOF()) {
-                                    val thirdToken = tokenStream.peek()
-                                    if (thirdToken is LatexToken.Text && thirdToken.content.startsWith(
-                                            ">"
-                                        )
-                                    ) {
-                                        tokenStream.advance()
-                                        arrowText += thirdToken.content
-                                    }
-                                }
-                                parseChemicalText(arrowText, nodes, expectCoefficient)
-                                expectCoefficient = false
-                                continue
-                            }
-                        }
-                    }
-
-                    parseChemicalText(token.content, nodes, expectCoefficient)
+                    // 普通 tokenizer 会把 + - = < > 等运算符拆成独立 Text token。
+                    // mhchem 需要把连续片段重新拼成一个词法单元，才能识别
+                    // Fe3+、=>、<=> 等跨 token 结构。
+                    parseChemicalText(consumeChemicalTextRun(), nodes, expectCoefficient)
                     expectCoefficient = false
                 }
 
@@ -206,10 +158,34 @@ internal class ChemicalParser(private val context: LatexParserContext) {
 
     private fun parseChemicalScriptContent(): LatexNode {
         // 化学脚本内容也可能包含化学语法？mhchem 中 ^{2+} 是合法的。
-        // 简单起见，使用普通解析
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> context.parseGroup()
+            is LatexToken.Text -> {
+                val first = tokenStream.advance() as LatexToken.Text
+                val content = buildString {
+                    append(first.content)
+                    // 无花括号电荷（如 ^2-）在 mhchem 中是一个整体；只追加
+                    // 紧随其后的符号，避免吞掉后续元素或表达式。
+                    if (first.content.all { it.isDigit() }) {
+                        while (true) {
+                            val next = tokenStream.peek() as? LatexToken.Text ?: break
+                            if (next.content.any { it != '+' && it != '-' }) break
+                            append(next.content)
+                            tokenStream.advance()
+                        }
+                    }
+                }
+                LatexNode.Text(content)
+            }
             else -> context.parseExpression() ?: LatexNode.Text("")
+        }
+    }
+
+    private fun consumeChemicalTextRun(): String = buildString {
+        while (true) {
+            val token = tokenStream.peek() as? LatexToken.Text ?: break
+            append(token.content)
+            tokenStream.advance()
         }
     }
 

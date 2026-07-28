@@ -150,18 +150,19 @@ class LabelRefTest {
 
     // ── 辅助方法 ──
 
-    @Suppress("UNCHECKED_CAST")
     private inline fun <reified T : LatexNode> findNode(doc: LatexNode.Document): T? {
-        return findNodeRecursive(doc.children, T::class.java)
+        return findNodeRecursive(doc.children) { it as? T }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun <T : LatexNode> findNodeRecursive(nodes: List<LatexNode>, targetClass: Class<T>): T? {
+    private fun <T : LatexNode> findNodeRecursive(
+        nodes: List<LatexNode>,
+        match: (LatexNode) -> T?
+    ): T? {
         for (node in nodes) {
-            if (targetClass.isInstance(node)) return node as T
+            match(node)?.let { return it }
             val children = node.children()
             if (children.isNotEmpty()) {
-                val found = findNodeRecursive(children, targetClass)
+                val found = findNodeRecursive(children, match)
                 if (found != null) return found
             }
         }
