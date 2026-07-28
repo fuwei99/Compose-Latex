@@ -90,40 +90,85 @@ internal class FractionMeasurer : NodeMeasurer {
         val fontSizePx = with(density) { effectiveContext.fontSize.toPx() }
         val provider = effectiveContext.mathFontProvider
         val hasRule = node.style != LatexNode.Fraction.FractionStyle.RULELESS
-        val ruleThickness = if (hasRule) {
-            provider?.fractionRuleThickness(fontSizePx)
-                ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
+        val defaultRuleThickness = provider?.fractionRuleThickness(fontSizePx)
+            ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
+        val ruleThickness = if (hasRule) defaultRuleThickness else 0f
+        val displayStyle = effectiveContext.mathStyle == MathStyle.DISPLAY
+        val numeratorClearance = if (displayStyle) {
+            provider?.fractionNumeratorDisplayGap(fontSizePx) ?: defaultRuleThickness * 3f
         } else {
-            0f
+            provider?.fractionNumeratorGap(fontSizePx) ?: defaultRuleThickness
         }
-        val gap = provider?.fractionNumeratorGap(fontSizePx)
-            ?: (fontSizePx * MathConstants.FRACTION_GAP)
-        val inset = fontSizePx * MathConstants.FRACTION_RULE_INSET
-
-        val width = max(numeratorLayout.width, denominatorLayout.width) + gap
+        val denominatorClearance = if (displayStyle) {
+            provider?.fractionDenominatorDisplayGap(fontSizePx) ?: defaultRuleThickness * 3f
+        } else {
+            provider?.fractionDenominatorGap(fontSizePx) ?: defaultRuleThickness
+        }
+        val nullDelimiterSpace = fontSizePx * 0.12f
+        val width = max(numeratorLayout.width, denominatorLayout.width) + nullDelimiterSpace * 2f
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
 
-        val numeratorTop = 0f
-        val lineY = numeratorTop + numeratorLayout.height + gap
-        val denominatorTop = lineY + ruleThickness + gap
-        val height = denominatorTop + denominatorLayout.height
-        val baseline = (lineY + ruleThickness / 2f) + axisHeight
+        var numeratorShift = provider?.fractionNumeratorShiftUp(
+            fontSizePx, displayStyle, hasRule
+        ) ?: fontSizePx * if (displayStyle) 0.677f else if (hasRule) 0.394f else 0.444f
+        var denominatorShift = provider?.fractionDenominatorShiftDown(fontSizePx, displayStyle)
+            ?: fontSizePx * if (displayStyle) 0.686f else 0.345f
+
+        val numeratorDepth = numeratorLayout.height - numeratorLayout.baseline
+        val denominatorHeight = denominatorLayout.baseline
+
+        if (hasRule) {
+            val halfRule = ruleThickness / 2f
+            val numeratorGap = (numeratorShift - numeratorDepth) - (axisHeight + halfRule)
+            if (numeratorGap < numeratorClearance) {
+                numeratorShift += numeratorClearance - numeratorGap
+            }
+            val denominatorGap = (axisHeight - halfRule) - (denominatorHeight - denominatorShift)
+            if (denominatorGap < denominatorClearance) {
+                denominatorShift += denominatorClearance - denominatorGap
+            }
+        } else {
+            val clearance = if (displayStyle) defaultRuleThickness * 7f else defaultRuleThickness * 3f
+            val current = (numeratorShift - numeratorDepth) -
+                (denominatorHeight - denominatorShift)
+            if (current < clearance) {
+                val adjustment = (clearance - current) / 2f
+                numeratorShift += adjustment
+                denominatorShift += adjustment
+            }
+        }
+
+        val numeratorTopRel = -numeratorShift - numeratorLayout.baseline
+        val numeratorBottomRel = -numeratorShift + numeratorDepth
+        val denominatorTopRel = denominatorShift - denominatorLayout.baseline
+        val denominatorBottomRel = denominatorShift +
+            (denominatorLayout.height - denominatorLayout.baseline)
+        val ruleTopRel = -axisHeight - ruleThickness / 2f
+        val ruleBottomRel = -axisHeight + ruleThickness / 2f
+        val top = minOf(numeratorTopRel, denominatorTopRel, if (hasRule) ruleTopRel else 0f)
+        val bottom = maxOf(numeratorBottomRel, denominatorBottomRel, if (hasRule) ruleBottomRel else 0f)
+        val height = bottom - top
+        val baseline = -top
 
         return NodeLayout(width, height, baseline) { x, y ->
-            val numeratorX = x + (width - numeratorLayout.width) / 2
-            numeratorLayout.draw(this, numeratorX, y + numeratorTop)
+            val numeratorX = x + (width - numeratorLayout.width) / 2f
+            numeratorLayout.draw(
+                this, numeratorX, y + baseline - numeratorShift - numeratorLayout.baseline
+            )
 
             if (hasRule) {
                 drawLine(
                     color = effectiveContext.color,
-                    start = Offset(x + inset, y + lineY + ruleThickness / 2),
-                    end = Offset(x + width - inset, y + lineY + ruleThickness / 2),
+                    start = Offset(x + nullDelimiterSpace, y + baseline - axisHeight),
+                    end = Offset(x + width - nullDelimiterSpace, y + baseline - axisHeight),
                     strokeWidth = ruleThickness
                 )
             }
 
-            val denominatorX = x + (width - denominatorLayout.width) / 2
-            denominatorLayout.draw(this, denominatorX, y + denominatorTop)
+            val denominatorX = x + (width - denominatorLayout.width) / 2f
+            denominatorLayout.draw(
+                this, denominatorX, y + baseline + denominatorShift - denominatorLayout.baseline
+            )
         }
     }
 }

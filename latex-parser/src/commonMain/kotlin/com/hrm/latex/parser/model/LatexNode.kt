@@ -572,6 +572,8 @@ sealed class LatexNode {
         val subscript: LatexNode? = null,
         val superscript: LatexNode? = null,
         val limitsMode: LimitsMode = LimitsMode.AUTO,
+        /** Whether AUTO mode places limits above/below in display style. */
+        val limitsInDisplay: Boolean = true,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class LimitsMode { AUTO, LIMITS, NOLIMITS }

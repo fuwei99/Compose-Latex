@@ -25,18 +25,21 @@ package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Accent.AccentType
+import com.hrm.latex.renderer.font.KaTeXFontMetrics
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
@@ -80,86 +83,146 @@ internal class AccentMeasurer : NodeMeasurer {
             return measureWideAccent(node, contentLayout, context, density)
         }
 
+        // KaTeX renders \vec with a dedicated SVG. A standalone text arrow has
+        // a normal text baseline, so clipping its line box makes it sink into
+        // the accented glyph. Draw the compact arrow independently instead.
+        if (node.accentType == AccentType.VEC) {
+            return measureVectorAccent(node.content, contentLayout, context, density)
+        }
+
         // 普通字符装饰
         val accentChar = when (node.accentType) {
             AccentType.HAT -> "^"
             AccentType.TILDE -> "~"
-            AccentType.BAR -> "¯"
-            AccentType.VEC -> "→"
+            AccentType.BAR -> "ˉ"
             AccentType.DOT -> "˙"
             AccentType.DDOT -> "¨"
             AccentType.DDDOT -> "⃛"
-            AccentType.GRAVE -> "`"
-            AccentType.ACUTE -> "´"
+            AccentType.GRAVE -> "ˋ"
+            AccentType.ACUTE -> "ˊ"
             AccentType.CHECK -> "ˇ"
             AccentType.BREVE -> "˘"
             AccentType.RING -> "˚"
             else -> ""
         }
 
-        val isUnder =
-            node.accentType == AccentType.UNDERLINE || node.accentType == AccentType.UNDERBRACE
-        val accentContext = context.shrink(MathConstants.ACCENT_SCALE)
-        val textStyle = accentContext.textStyle()
-        val result = measurer.measure(AnnotatedString(accentChar), textStyle)
-
-        val (accentHeightScale, accentOffsetScale) = when (node.accentType) {
-            AccentType.HAT -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
-            AccentType.TILDE -> MathConstants.ACCENT_TILDE_HEIGHT to MathConstants.ACCENT_TILDE_OFFSET
-            AccentType.BAR -> MathConstants.ACCENT_BAR_HEIGHT to MathConstants.ACCENT_BAR_OFFSET
-            AccentType.VEC -> MathConstants.ACCENT_VEC_HEIGHT to MathConstants.ACCENT_VEC_OFFSET
-            AccentType.DOT -> MathConstants.ACCENT_DOT_HEIGHT to MathConstants.ACCENT_DOT_OFFSET
-            AccentType.DDOT -> MathConstants.ACCENT_DDOT_HEIGHT to MathConstants.ACCENT_DDOT_OFFSET
-            AccentType.DDDOT -> MathConstants.ACCENT_DDOT_HEIGHT to MathConstants.ACCENT_DDOT_OFFSET
-            AccentType.GRAVE -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
-            AccentType.ACUTE -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
-            AccentType.CHECK -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
-            AccentType.BREVE -> MathConstants.ACCENT_TILDE_HEIGHT to MathConstants.ACCENT_TILDE_OFFSET
-            AccentType.RING -> MathConstants.ACCENT_DOT_HEIGHT to MathConstants.ACCENT_DOT_OFFSET
-            else -> MathConstants.ACCENT_DEFAULT_HEIGHT to MathConstants.ACCENT_DEFAULT_OFFSET
-        }
-
-        val lineTop = result.getLineTop(0)
-        val accentHeight = with(density) { (context.fontSize * accentHeightScale).toPx() }
-        val accentBaseline = min(result.firstBaseline - lineTop, accentHeight)
+        val accentContext = context.copy(
+            fontFamily = context.fontFamilies?.main ?: context.fontFamily,
+            fontStyle = FontStyle.Normal,
+            fontWeight = FontWeight.Normal
+        )
+        val result = measurer.measure(AnnotatedString(accentChar), accentContext.textStyle())
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val accentMetrics = KaTeXFontMetrics.mainAccentVerticalMetrics(accentChar.first().code)
+        val accentHeight = fontSizePx * accentMetrics.height
+        val accentDepth = fontSizePx * accentMetrics.depth
+        val accentBoxHeight = accentHeight + accentDepth
 
         val accentLayout = NodeLayout(
             result.size.width.toFloat(),
-            accentHeight,
-            accentBaseline
+            accentBoxHeight,
+            accentHeight
         ) { x, y ->
-            drawText(result, topLeft = Offset(x, y - lineTop))
+            drawText(result, topLeft = Offset(x, y + accentHeight - result.firstBaseline))
         }
 
-        val width = max(contentLayout.width, accentLayout.width)
-        val accentDownOffset = min(
-            accentHeight * 0.9f,
-            with(density) { (context.fontSize * accentOffsetScale).toPx() }
+        val baseChar = singleBaseCharacter(node.content)
+        val glyphAdvance = (contentLayout.width - contentLayout.italicCorrection).coerceAtLeast(0f)
+        val attachment = if (baseChar != null) {
+            context.mathFontProvider?.topAccentAttachment(baseChar, fontSizePx, glyphAdvance)
+                ?.takeIf { it >= 0f } ?: glyphAdvance / 2f
+        } else {
+            contentLayout.width / 2f
+        }
+        val rawAccentLeft = attachment - accentLayout.width / 2f
+        val left = min(0f, rawAccentLeft)
+        val right = max(contentLayout.width, rawAccentLeft + accentLayout.width)
+        val width = right - left
+        val contentX = -left
+        val accentX = rawAccentLeft - left
+        val vertical = calculateKaTeXAccentVerticalPlacement(
+            baseHeight = contentLayout.baseline,
+            baseDepth = contentLayout.height - contentLayout.baseline,
+            accentHeight = accentHeight,
+            accentDepth = accentDepth,
+            xHeight = context.mathFontProvider?.xHeight(fontSizePx) ?: fontSizePx * 0.431f
         )
-        val totalHeight = contentLayout.height + accentHeight - accentDownOffset
 
         return NodeLayout(
             width,
-            totalHeight,
-            contentLayout.baseline + (if (isUnder) 0f else accentLayout.height - accentDownOffset)
+            vertical.totalHeight,
+            vertical.baseline
         ) { x, y ->
-            val centerX = x + width / 2
-            val contentX = centerX - contentLayout.width / 2
-
-            // 上方装饰符号向右偏移以补偿斜体效果
-            val italicCorrection = if (!isUnder) {
-                with(density) { (context.fontSize * MathConstants.ACCENT_ITALIC_CORRECTION).toPx() }
-            } else 0f
-            val accentX = centerX - accentLayout.width / 2 + italicCorrection
-
-            if (isUnder) {
-                contentLayout.draw(this, contentX, y)
-                accentLayout.draw(this, accentX, y + contentLayout.height)
-            } else {
-                accentLayout.draw(this, accentX, y + accentDownOffset)
-                contentLayout.draw(this, contentX, y + accentLayout.height - accentDownOffset)
-            }
+            accentLayout.draw(this, x + accentX, y + vertical.accentY)
+            contentLayout.draw(this, x + contentX, y + vertical.contentY)
         }
+    }
+
+    private fun measureVectorAccent(
+        contentNode: LatexNode,
+        contentLayout: NodeLayout,
+        context: RenderContext,
+        density: Density
+    ): NodeLayout {
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val strokeWidth = max(with(density) { 1f.dp.toPx() }, fontSizePx * 0.04f)
+        val strokeHalf = strokeWidth / 2f
+        val arrowWidth = fontSizePx * 0.471f
+        val arrowInkHeight = fontSizePx * 0.16f
+        val arrowHeadLength = fontSizePx * 0.12f
+        val gap = fontSizePx * 0.04f
+
+        val glyphAdvance = (contentLayout.width - contentLayout.italicCorrection).coerceAtLeast(0f)
+        val baseChar = singleBaseCharacter(contentNode)
+        val attachment = baseChar?.let {
+            context.mathFontProvider?.topAccentAttachment(it, fontSizePx, glyphAdvance)
+                ?.takeIf { value -> value >= 0f }
+        } ?: glyphAdvance / 2f
+
+        val rawArrowLeft = attachment - arrowWidth / 2f
+        val left = min(0f, rawArrowLeft - strokeHalf)
+        val right = max(contentLayout.width, rawArrowLeft + arrowWidth + strokeHalf)
+        val width = right - left
+        val contentX = -left
+        val arrowLeft = rawArrowLeft - left
+        val contentY = arrowInkHeight + gap + strokeWidth
+        val height = contentY + contentLayout.height
+        val baseline = contentY + contentLayout.baseline
+
+        return NodeLayout(width, height, baseline) { x, y ->
+            val centerY = y + strokeHalf + arrowInkHeight / 2f
+            val startX = x + arrowLeft + strokeHalf
+            val endX = x + arrowLeft + arrowWidth - strokeHalf
+            drawLine(
+                color = context.color,
+                start = Offset(startX, centerY),
+                end = Offset(endX, centerY),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = context.color,
+                start = Offset(endX - arrowHeadLength, centerY - arrowInkHeight / 2f),
+                end = Offset(endX, centerY),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = context.color,
+                start = Offset(endX - arrowHeadLength, centerY + arrowInkHeight / 2f),
+                end = Offset(endX, centerY),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round
+            )
+            contentLayout.draw(this, x + contentX, y + contentY)
+        }
+    }
+
+    private fun singleBaseCharacter(node: LatexNode): String? = when (node) {
+        is LatexNode.Text -> node.content.takeIf { it.length == 1 }
+        is LatexNode.Symbol -> node.unicode.ifEmpty { node.symbol }.takeIf { it.length == 1 }
+        is LatexNode.Group -> node.children.singleOrNull()?.let(::singleBaseCharacter)
+        else -> null
     }
 
     /**
@@ -463,4 +526,30 @@ internal class AccentMeasurer : NodeMeasurer {
             contentLayout.draw(this, x, contentY)
         }
     }
+}
+
+/** KaTeX `firstBaseline` vlist placement for a non-stretchy accent. */
+internal data class AccentVerticalPlacement(
+    val totalHeight: Float,
+    val baseline: Float,
+    val contentY: Float,
+    val accentY: Float
+)
+
+internal fun calculateKaTeXAccentVerticalPlacement(
+    baseHeight: Float,
+    baseDepth: Float,
+    accentHeight: Float,
+    accentDepth: Float,
+    xHeight: Float
+): AccentVerticalPlacement {
+    val clearance = min(baseHeight, xHeight)
+    val accentExtentAboveBaseline = baseHeight - clearance + accentHeight + accentDepth
+    val heightAboveBaseline = max(baseHeight, accentExtentAboveBaseline)
+    return AccentVerticalPlacement(
+        totalHeight = heightAboveBaseline + baseDepth,
+        baseline = heightAboveBaseline,
+        contentY = heightAboveBaseline - baseHeight,
+        accentY = heightAboveBaseline - accentExtentAboveBaseline
+    )
 }

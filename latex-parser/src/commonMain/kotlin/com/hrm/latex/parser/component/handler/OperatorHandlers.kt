@@ -61,8 +61,13 @@ internal fun CommandRegistry.installOperatorHandlers() {
         LatexNode.Operator(cmdName)
     }
 
-    // \operatorname{Name}
+    // \operatorname{Name} / \operatorname*{Name}
     register("operatorname") { _, ctx, stream ->
+        val starred = stream.peek().let {
+            it is LatexToken.Text && it.content == "*"
+        }
+        if (starred) stream.advance()
+
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\operatorname")
         val name = when (arg) {
             is LatexNode.Text -> arg.content
@@ -74,7 +79,13 @@ internal fun CommandRegistry.installOperatorHandlers() {
         val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
 
         if (sub != null || sup != null) {
-            LatexNode.BigOperator(name, sub, sup, limitsMode)
+            LatexNode.BigOperator(
+                operator = name,
+                subscript = sub,
+                superscript = sup,
+                limitsMode = limitsMode,
+                limitsInDisplay = starred
+            )
         } else {
             LatexNode.OperatorName(name)
         }
@@ -95,7 +106,8 @@ internal fun CommandRegistry.installOperatorHandlers() {
                         limitsMode
                     } else {
                         arg.limitsMode
-                    }
+                    },
+                    limitsInDisplay = arg.limitsInDisplay
                 )
             }
 
@@ -113,7 +125,13 @@ internal fun CommandRegistry.installOperatorHandlers() {
                 if (content.isEmpty()) return@register LatexNode.Text("\\mathop")
 
                 val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
-                LatexNode.BigOperator(content, sub, sup, limitsMode)
+                LatexNode.BigOperator(
+                    operator = content,
+                    subscript = sub,
+                    superscript = sup,
+                    limitsMode = limitsMode,
+                    limitsInDisplay = true
+                )
             }
         }
     }

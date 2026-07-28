@@ -26,204 +26,100 @@ import androidx.compose.ui.text.font.FontFamily
 import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.utils.MathConstants
 
-/**
- * TTF 字体集的 MathFontProvider 实现。
- *
- * 将现有的 KaTeX TTF 字体集和 [MathConstants] 硬编码常量适配到
- * [MathFontProvider] 统一接口，保证零回归。
- *
- * 所有常量值来自 [MathConstants]，通过 `fontSizePx * ratio` 转换为像素。
- * 斜体修正、重音附着使用启发式估算（与迁移前行为一致）。
- * 字形变体通过 KaTeX Size1~4 字体的 5 级阶梯实现。
- *
- * @param fontFamilies KaTeX 12 槽位字体家族（含字节数据）
- */
+/** 内置 KaTeX TTF 字体集的 TeX 排版度量。 */
 internal class TtfFontSetProvider(
     private val fontFamilies: LatexFontFamilies
 ) : MathFontProvider {
+    override fun axisHeight(fontSizePx: Float) =
+        fontSizePx * MathConstants.MATH_AXIS_HEIGHT_RATIO
 
-    override val hasGlyphVariants: Boolean = false
+    override fun fractionRuleThickness(fontSizePx: Float) = fontSizePx * 0.04f
+    override fun fractionNumeratorDisplayGap(fontSizePx: Float) = fontSizePx * 0.12f
+    override fun fractionNumeratorGap(fontSizePx: Float) = fontSizePx * 0.04f
+    override fun fractionDenominatorDisplayGap(fontSizePx: Float) = fontSizePx * 0.12f
+    override fun fractionDenominatorGap(fontSizePx: Float) = fontSizePx * 0.04f
 
-    // ─── 全局排版常量 ────────────────────────────────────────────
-
-    override fun axisHeight(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.MATH_AXIS_HEIGHT_RATIO
+    override fun fractionNumeratorShiftUp(
+        fontSizePx: Float,
+        displayStyle: Boolean,
+        hasRule: Boolean
+    ) = fontSizePx * when {
+        displayStyle -> 0.677f
+        hasRule -> 0.394f
+        else -> 0.444f
     }
 
-    override fun fractionRuleThickness(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_RULE_THICKNESS
+    override fun fractionDenominatorShiftDown(fontSizePx: Float, displayStyle: Boolean) =
+        fontSizePx * if (displayStyle) 0.686f else 0.345f
+
+    override fun superscriptShiftUp(fontSizePx: Float) = fontSizePx * 0.363f
+
+    override fun superscriptShiftUp(
+        fontSizePx: Float,
+        displayStyle: Boolean,
+        crampedStyle: Boolean
+    ) = fontSizePx * when {
+        displayStyle -> 0.413f
+        crampedStyle -> 0.289f
+        else -> 0.363f
     }
 
-    override fun fractionNumeratorDisplayGap(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP
-    }
+    override fun subscriptShiftDown(fontSizePx: Float) = fontSizePx * 0.150f
+    override fun subscriptShiftDown(fontSizePx: Float, hasSuperscript: Boolean) =
+        fontSizePx * if (hasSuperscript) 0.247f else 0.150f
+    override fun superscriptDrop(fontSizePx: Float) = fontSizePx * 0.386f
+    override fun subscriptDrop(fontSizePx: Float) = fontSizePx * 0.050f
+    override fun xHeight(fontSizePx: Float) = fontSizePx * 0.431f
+    override fun spaceAfterScript(fontSizePx: Float) = fontSizePx * 0.05f
+    override fun subSuperscriptGapMin(fontSizePx: Float) =
+        fractionRuleThickness(fontSizePx) * 4f
 
-    override fun fractionNumeratorGap(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP
-    }
+    override fun radicalDisplayVerticalGap(fontSizePx: Float) =
+        fractionRuleThickness(fontSizePx) + xHeight(fontSizePx) / 4f
+    override fun radicalVerticalGap(fontSizePx: Float) =
+        fractionRuleThickness(fontSizePx) * 1.25f
+    override fun radicalRuleThickness(fontSizePx: Float) = fractionRuleThickness(fontSizePx)
+    override fun upperLimitGap(fontSizePx: Float, limitDepthPx: Float) = maxOf(
+        fontSizePx * 0.111f,
+        fontSizePx * 0.2f - limitDepthPx
+    )
 
-    override fun fractionDenominatorDisplayGap(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP
-    }
-
-    override fun fractionDenominatorGap(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP
-    }
-
-    override fun superscriptShiftUp(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.SUPERSCRIPT_SHIFT
-    }
-
-    override fun subscriptShiftDown(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.SUBSCRIPT_SHIFT
-    }
-
-    override fun subSuperscriptGapMin(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.SCRIPT_MIN_GAP
-    }
-
-    override fun scriptPercentScaleDown(): Int {
-        return (MathConstants.SCRIPT_SCALE * 100).toInt()  // 0.7 → 70
-    }
-
-    override fun scriptScriptPercentScaleDown(): Int {
-        return (MathConstants.SCRIPT_SCRIPT_SCALE * 100).toInt()  // 0.5 → 50
-    }
-
-    override fun radicalDisplayVerticalGap(fontSizePx: Float): Float {
-        // Display 模式：ruleThickness * RADICAL_TOP_GAP_MULTIPLIER
-        return fractionRuleThickness(fontSizePx) * MathConstants.RADICAL_TOP_GAP_MULTIPLIER
-    }
-
-    override fun radicalVerticalGap(fontSizePx: Float): Float {
-        // 非 Display 模式：ruleThickness * (RADICAL_TOP_GAP_MULTIPLIER * 0.7)
-        return fractionRuleThickness(fontSizePx) * MathConstants.RADICAL_TOP_GAP_MULTIPLIER * 0.7f
-    }
-
-    override fun radicalRuleThickness(fontSizePx: Float): Float {
-        return fractionRuleThickness(fontSizePx)
-    }
-
-    override fun upperLimitGapMin(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
-    }
-
-    override fun lowerLimitGapMin(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
-    }
-
-    override fun overbarVerticalGap(fontSizePx: Float): Float {
-        return fractionRuleThickness(fontSizePx) * 3f
-    }
-
-    override fun underbarVerticalGap(fontSizePx: Float): Float {
-        return fractionRuleThickness(fontSizePx) * 3f
-    }
-
-    override fun accentBaseHeight(fontSizePx: Float): Float {
-        // KaTeX x-height 近似值
-        return fontSizePx * 0.45f
-    }
-
-    override fun stackDisplayGapMin(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP * 2f
-    }
-
-    override fun stackGapMin(fontSizePx: Float): Float {
-        return fontSizePx * MathConstants.FRACTION_GAP
-    }
-
-    // ─── 逐字形信息（启发式估算） ──────────────────────────────
+    override fun lowerLimitGap(fontSizePx: Float, limitHeightPx: Float) = maxOf(
+        fontSizePx * 0.166f,
+        fontSizePx * 0.6f - limitHeightPx
+    )
 
     override fun italicCorrection(glyphChar: String, fontSizePx: Float): Float {
         if (glyphChar.isEmpty()) return 0f
-        val firstChar = glyphChar.first()
-        return when {
-            firstChar.isUpperCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_UPPER
-            firstChar.isLowerCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_LOWER
-            else -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_OTHER
-        }
+        return fontSizePx * KaTeXFontMetrics.italicCorrection(glyphChar.last().code)
     }
 
-    override fun topAccentAttachment(glyphChar: String, fontSizePx: Float): Float {
-        // TTF 无逐字形数据，返回 -1 表示应使用居中
-        return -1f
-    }
-
-    override fun mathKern(
+    override fun topAccentAttachment(
         glyphChar: String,
-        height: Float,
         fontSizePx: Float,
-        isRight: Boolean
+        glyphAdvancePx: Float
     ): Float {
-        // TTF 无数学字距数据
-        return 0f
+        if (glyphChar.isEmpty()) return -1f
+        return glyphAdvancePx / 2f + fontSizePx * KaTeXFontMetrics.skew(glyphChar.last().code)
     }
 
-    // ─── 字形变体（KaTeX Size1~4 阶梯） ────────────────────────
-
-    override fun verticalVariants(glyphChar: String, fontSizePx: Float): List<GlyphVariant> {
-        // TTF 方案：返回 5 级字体的逻辑变体（Main + Size1~4）
-        // glyphId = 0 表示不支持 Path 渲染（TTF 无 CFF 表）
-        // advanceMeasurement 设为递增的估算值，实际渲染时由 TextMeasurer 决定
-        return listOf(
-            GlyphVariant(0, glyphChar, fontSizePx * 1.0f, fontFamilies.main),
-            GlyphVariant(0, glyphChar, fontSizePx * 1.2f, fontFamilies.size1),
-            GlyphVariant(0, glyphChar, fontSizePx * 1.8f, fontFamilies.size2),
-            GlyphVariant(0, glyphChar, fontSizePx * 2.4f, fontFamilies.size3),
-            GlyphVariant(0, glyphChar, fontSizePx * 3.0f, fontFamilies.size4),
-        )
+    override fun fontFamilyFor(role: MathFontRole): FontFamily = when (role) {
+        MathFontRole.ROMAN -> fontFamilies.main
+        MathFontRole.MATH_ITALIC -> fontFamilies.math
+        MathFontRole.BLACKBOARD_BOLD -> fontFamilies.ams
+        MathFontRole.CALLIGRAPHIC -> fontFamilies.caligraphic
+        MathFontRole.FRAKTUR -> fontFamilies.fraktur
+        MathFontRole.SCRIPT -> fontFamilies.script
+        MathFontRole.SANS_SERIF -> fontFamilies.sansSerif
+        MathFontRole.MONOSPACE -> fontFamilies.monospace
+        MathFontRole.LARGE_OPERATOR, MathFontRole.DELIMITER -> fontFamilies.main
     }
 
-    override fun horizontalVariants(glyphChar: String, fontSizePx: Float): List<GlyphVariant> {
-        // TTF 不支持水平变体
-        return emptyList()
-    }
-
-    override fun verticalAssembly(glyphChar: String, fontSizePx: Float): GlyphAssembly? {
-        // TTF 不支持字形组装
-        return null
-    }
-
-    override fun horizontalAssembly(glyphChar: String, fontSizePx: Float): GlyphAssembly? {
-        // TTF 不支持字形组装
-        return null
-    }
-
-    // ─── 字体访问 ────────────────────────────────────────────────
-
-    override fun fontFamilyFor(role: MathFontRole): FontFamily {
-        return when (role) {
-            MathFontRole.ROMAN -> fontFamilies.main
-            MathFontRole.MATH_ITALIC -> fontFamilies.math
-            MathFontRole.BLACKBOARD_BOLD -> fontFamilies.ams
-            MathFontRole.CALLIGRAPHIC -> fontFamilies.caligraphic
-            MathFontRole.FRAKTUR -> fontFamilies.fraktur
-            MathFontRole.SCRIPT -> fontFamilies.script
-            MathFontRole.SANS_SERIF -> fontFamilies.sansSerif
-            MathFontRole.MONOSPACE -> fontFamilies.monospace
-            MathFontRole.LARGE_OPERATOR -> fontFamilies.main
-            MathFontRole.DELIMITER -> fontFamilies.main
-        }
-    }
-
-    override fun fontFamilyForVariant(glyphChar: String, variantIndex: Int): FontFamily {
-        return when (variantIndex) {
-            0 -> fontFamilies.main
-            1 -> fontFamilies.size1
-            2 -> fontFamilies.size2
-            3 -> fontFamilies.size3
-            4 -> fontFamilies.size4
-            else -> fontFamilies.size4
-        }
-    }
-
-    override fun fontBytes(role: MathFontRole): ByteArray? {
-        return when (role) {
-            MathFontRole.ROMAN, MathFontRole.LARGE_OPERATOR, MathFontRole.DELIMITER ->
-                fontFamilies.mainBytes
-            MathFontRole.MATH_ITALIC -> fontFamilies.mathBytes
-            else -> fontFamilies.mainBytes
-        }
+    override fun fontBytes(role: MathFontRole): ByteArray? = when (role) {
+        MathFontRole.ROMAN, MathFontRole.LARGE_OPERATOR, MathFontRole.DELIMITER ->
+            fontFamilies.mainBytes
+        MathFontRole.MATH_ITALIC -> fontFamilies.mathBytes
+        MathFontRole.BLACKBOARD_BOLD -> fontFamilies.amsBytes
+        else -> fontFamilies.mainBytes
     }
 }

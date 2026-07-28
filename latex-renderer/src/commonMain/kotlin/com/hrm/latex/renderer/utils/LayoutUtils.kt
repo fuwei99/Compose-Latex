@@ -76,7 +76,7 @@ internal object LayoutUtils {
         context: RenderContext,
         measurer: TextMeasurer
     ): Float {
-        // 优先使用 MathFontProvider（OTF MATH 表提供精确值）
+        // 使用 KaTeX 字体度量中的数学轴高度。
         context.mathFontProvider?.let { provider ->
             val axisFromFont = provider.axisHeight(fontSizePx)
             if (axisFromFont > 0f) return axisFromFont

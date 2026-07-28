@@ -36,9 +36,9 @@ import com.hrm.latex.renderer.model.FontVariant
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.FontResolver
+import com.hrm.latex.renderer.utils.InkBoundsEstimator
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.MathFontUtils
-import com.hrm.latex.renderer.utils.isCenteredSymbol
 import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.spaceWidthPx
 import kotlin.reflect.KClass
@@ -128,30 +128,10 @@ internal class TextContentMeasurer : NodeMeasurer {
             applyFontVariant(text, context.fontVariant)
         }
 
-        // OTF 模式下，用 Unicode 数学斜体码位代替 FontStyle.Italic
-        // 或其他判断方式
-        val hasMathTable = context.mathFontProvider?.hasGlyphVariants == true
-
         val resolvedStyle =
             if (context.fontStyle == null && context.fontVariant == FontVariant.NORMAL) {
-                if (hasMathTable) {
-                    // OTF 模式：字母→映射到 Math Italic Unicode，数字→保持正体
-                    val mathText = MathFontUtils.toMathItalic(transformedText)
-                    // 不设 FontStyle.Italic，因为字形已由 Unicode 码位决定
-                    return measureAnnotatedText(
-                        mathText,
-                        context.copy(fontStyle = FontStyle.Normal),
-                        measurer,
-                        density
-                    )
-                } else {
-                    // TTF 模式：保持原有逻辑
-                    when {
-                        transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
-                        transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
-                        else -> context
-                    }
-                }
+                // KaTeX: mathnormal 字母走 Math-Italic，数字和标点走 Main-Regular。
+                return measureKaTeXMathText(transformedText, context, measurer, density)
             } else {
                 context
             }
@@ -170,26 +150,27 @@ internal class TextContentMeasurer : NodeMeasurer {
         if (symbolInfo != null) {
             // 使用 KaTeX 字体渲染（标准 Unicode 编码）
             val fontFamily = FontResolver.getFontForSymbol(symbolInfo, context.fontFamilies)
-            var resolvedStyle = context.copy(
+            val resolvedStyle = context.copy(
                 fontStyle = symbolInfo.fontStyle,
                 fontFamily = fontFamily ?: context.fontFamily
             )
 
-            if (needsLightWeight(node.symbol)) {
-                resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
+            val isMathItalic = symbolInfo.fontCategory == com.hrm.latex.renderer.utils.FontCategory.MATH_ITALIC
+            val correction = if (isMathItalic) {
+                context.mathFontProvider?.italicCorrection(symbolInfo.texGlyph, with(density) { context.fontSize.toPx() }) ?: 0f
+            } else 0f
+            val bytes = when (symbolInfo.fontCategory) {
+                com.hrm.latex.renderer.utils.FontCategory.MATH_ITALIC ->
+                    context.fontFamilies?.mathBytes
+                com.hrm.latex.renderer.utils.FontCategory.BLACKBOARD_BOLD ->
+                    context.fontFamilies?.amsBytes
+                com.hrm.latex.renderer.utils.FontCategory.EXTENSION ->
+                    context.fontFamilies?.size1Bytes
+                else -> context.fontFamilies?.mainBytes
             }
-
-            val layout = measureAnnotatedText(symbolInfo.texGlyph, resolvedStyle, measurer, density)
-
-            if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
-                return NodeLayout(
-                    layout.width,
-                    layout.height,
-                    layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
-                    draw = layout.draw
-                )
-            }
-            return layout
+            return measureAnnotatedText(
+                symbolInfo.texGlyph, resolvedStyle, measurer, density, bytes, correction
+            )
         }
 
         // 2. 回退：FontResolver 未覆盖的符号，使用 Unicode 字符直接渲染
@@ -206,57 +187,97 @@ internal class TextContentMeasurer : NodeMeasurer {
             context
         }
 
-        if (needsLightWeight(node.symbol)) {
-            resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
+        return measureAnnotatedText(text, resolvedStyle, measurer, density)
+    }
+
+    private fun measureKaTeXMathText(
+        text: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density
+    ): NodeLayout {
+        if (text.isEmpty()) return NodeLayout.EMPTY
+
+        val families = context.fontFamilies ?: return measureAnnotatedText(
+            text, context.copy(fontStyle = FontStyle.Italic), measurer, density
+        )
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val layouts = mutableListOf<NodeLayout>()
+        var start = 0
+        while (start < text.length) {
+            val mathRun = text[start].isLetter()
+            var end = start + 1
+            while (end < text.length && text[end].isLetter() == mathRun) end++
+            val run = text.substring(start, end)
+            if (mathRun) {
+                val correction = context.mathFontProvider?.italicCorrection(run, fontSizePx) ?: 0f
+                layouts += measureAnnotatedText(
+                    run,
+                    context.copy(fontFamily = families.math, fontStyle = FontStyle.Italic),
+                    measurer,
+                    density,
+                    families.mathBytes,
+                    correction
+                )
+            } else {
+                layouts += measureAnnotatedText(
+                    run,
+                    context.copy(fontFamily = families.main, fontStyle = FontStyle.Normal),
+                    measurer,
+                    density,
+                    families.mainBytes
+                )
+            }
+            start = end
         }
+        return combineRuns(layouts)
+    }
 
-        val layout = measureAnnotatedText(text, resolvedStyle, measurer, density)
-
-        if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
-            return NodeLayout(
-                layout.width,
-                layout.height,
-                layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
-                draw = layout.draw
-            )
+    private fun combineRuns(layouts: List<NodeLayout>): NodeLayout {
+        if (layouts.size == 1) return layouts.first()
+        val baseline = layouts.maxOf { it.baseline }
+        val descent = layouts.maxOf { it.height - it.baseline }
+        val width = layouts.sumOf { it.width.toDouble() }.toFloat()
+        return NodeLayout(width, baseline + descent, baseline, layouts.last().italicCorrection) { x, y ->
+            var currentX = x
+            for (layout in layouts) {
+                layout.draw(this, currentX, y + baseline - layout.baseline)
+                currentX += layout.width
+            }
         }
-
-        return layout
     }
 
     private fun measureAnnotatedText(
-        text: String, context: RenderContext, measurer: TextMeasurer, density: Density
+        text: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density,
+        fontBytes: ByteArray? = null,
+        italicCorrection: Float = 0f
     ): NodeLayout {
         val result = measurer.measure(AnnotatedString(text), context.textStyle())
         val baseWidth = result.size.width.toFloat()
-
-        // 斜体悬伸补偿：必须使用 px 单位，不能用 sp 的数值直接加到 px 宽度上
         val fontSizePx = with(density) { context.fontSize.toPx() }
-
-        val rightOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
-            val lastChar = text.last()
-            when {
-                lastChar.isUpperCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_UPPER
-                lastChar.isLowerCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_LOWER
-                else -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_OTHER
-            }
-        } else 0f
-
-        val leftOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
-            when {
-                text.first() in "FTVWYfv" -> fontSizePx * MathConstants.ITALIC_LEFT_OVERHANG
-                else -> 0f
-            }
-        } else 0f
-
-        val totalWidth = baseWidth + leftOverhang + rightOverhang
+        val precise = fontBytes?.let {
+            InkBoundsEstimator.measurePrecise(
+                text = text,
+                fontSizePx = fontSizePx,
+                fontBytes = it,
+                baseline = result.firstBaseline,
+                fontWeightValue = context.fontWeight?.weight ?: 400
+            )
+        }
+        val topOffset = precise?.inkTopOffset ?: 0f
+        val height = precise?.inkHeight ?: result.size.height.toFloat()
+        val baseline = precise?.inkBaseline ?: result.firstBaseline
 
         return NodeLayout(
-            totalWidth,
-            result.size.height.toFloat(),
-            result.firstBaseline
+            width = baseWidth + italicCorrection,
+            height = height,
+            baseline = baseline,
+            italicCorrection = italicCorrection
         ) { x, y ->
-            drawText(result, topLeft = Offset(x + leftOverhang, y))
+            drawText(result, topLeft = Offset(x, y - topOffset))
         }
     }
 
@@ -286,14 +307,6 @@ internal class TextContentMeasurer : NodeMeasurer {
         return symbol in VAR_UPPERCASE_GREEK_SYMBOLS
     }
 
-    /**
-     * 判断符号是否需要使用极细字重（FontWeight.ExtraLight）
-     * 某些符号（如 ℏ, ∇, ∂）在正常字重下笔画过粗，需要使用极细字重
-     */
-    private fun needsLightWeight(symbol: String): Boolean {
-        return symbol in LIGHT_WEIGHT_SYMBOLS
-    }
-
     companion object {
         /** 小写希腊字母命令名集合（编译时常量，避免每次调用重新创建） */
         private val LOWERCASE_GREEK_SYMBOLS = setOf(
@@ -316,12 +329,6 @@ internal class TextContentMeasurer : NodeMeasurer {
             "varPi", "varSigma", "varUpsilon", "varPhi", "varPsi", "varOmega"
         )
 
-        /** 需要极细字重的符号 */
-        private val LIGHT_WEIGHT_SYMBOLS = setOf(
-            "hbar",      // ℏ (h-bar)
-            "nabla",     // ∇ (nabla)
-            "partial"    // ∂ (partial derivative)
-        )
     }
 
     private fun measureTextMode(

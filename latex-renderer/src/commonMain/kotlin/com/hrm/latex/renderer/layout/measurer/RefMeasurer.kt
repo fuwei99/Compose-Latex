@@ -22,15 +22,11 @@
 
 package com.hrm.latex.renderer.layout.measurer
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.textStyle
 import kotlin.reflect.KClass
 
 /**
@@ -51,45 +47,28 @@ internal class RefMeasurer : NodeMeasurer {
         measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout = when (node) {
-        is LatexNode.Ref -> measureRef(node, context, measurer)
-        is LatexNode.EqRef -> measureEqRef(node, context, measurer)
+        is LatexNode.Ref -> measureRef(node, context, measureNode)
+        is LatexNode.EqRef -> measureEqRef(node, context, measureNode)
         else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
     }
 
     private fun measureRef(
         node: LatexNode.Ref,
         context: RenderContext,
-        measurer: TextMeasurer
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         // 优先从编号映射中查找实际编号，找不到则降级为键名
         val displayText = context.equationNumbering?.resolveLabel(node.key) ?: node.key
-        val style = context.textStyle()
-        val result = measurer.measure(AnnotatedString(displayText), style)
-        val width = result.size.width.toFloat()
-        val height = result.size.height.toFloat()
-        val baseline = result.firstBaseline
-
-        return NodeLayout(width, height, baseline) { x, y ->
-            drawText(result, topLeft = Offset(x, y))
-        }
+        return measureNode(LatexNode.Text(displayText), context)
     }
 
     private fun measureEqRef(
         node: LatexNode.EqRef,
         context: RenderContext,
-        measurer: TextMeasurer
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         // 优先从编号映射中查找实际编号，找不到则降级为键名
         val resolvedNumber = context.equationNumbering?.resolveLabel(node.key) ?: node.key
-        val style = context.textStyle()
-        val displayText = "(${resolvedNumber})"
-        val result = measurer.measure(AnnotatedString(displayText), style)
-        val width = result.size.width.toFloat()
-        val height = result.size.height.toFloat()
-        val baseline = result.firstBaseline
-
-        return NodeLayout(width, height, baseline) { x, y ->
-            drawText(result, topLeft = Offset(x, y))
-        }
+        return measureNode(LatexNode.Text("($resolvedNumber)"), context)
     }
 }

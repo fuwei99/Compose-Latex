@@ -127,7 +127,7 @@
 - ✅ `\max`, `\min` 最大值/最小值
 - ✅ `\sup`, `\inf` 上确界/下确界
 - ✅ `\limsup`, `\liminf` 上极限/下极限
-- ✅ `\operatorname{名称}` 自定义运算符（正体渲染，支持 `\limits`/`\nolimits` 和上下标）
+- ✅ `\operatorname{名称}` / `\operatorname*{名称}` 自定义运算符（正体渲染，星号或 `\limits` 控制 display 上下限）
 - ✅ `\DeclareMathOperator{\Tr}{Tr}` 声明式运算符定义（前言中定义自定义运算符）
 - ✅ `\mathop{内容}` 将任意内容标记为大型运算符（可带上下限）
 

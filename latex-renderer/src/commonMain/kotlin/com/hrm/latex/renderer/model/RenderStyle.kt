@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.renderer.font.MathFont
 import com.hrm.latex.renderer.font.MathFontProvider
 import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.utils.MathConstants
@@ -175,30 +174,6 @@ data class LatexConfig(
     val lineBreaking: LineBreakingConfig = LineBreakingConfig(),
     val highlight: HighlightConfig = HighlightConfig(),
     val accessibilityEnabled: Boolean = false,
-    /**
-     * 数学字体配置（唯一的字体入口）。决定排版参数和字体的来源。
-     *
-     * - [MathFont.Default]：使用内置 Latin Modern Math OTF 字体（高精度排版，推荐）
-     * - [MathFont.KaTeXTTF]：使用内置 KaTeX TTF 字体集
-     * - [MathFont.OTF]：使用自定义的带 MATH 表的 OTF 字体
-     * - [MathFont.TTF]：使用自定义的 TTF 字体集
-     *
-     * 使用示例：
-     * ```kotlin
-     * // 默认 — 内置 Latin Modern Math OTF（推荐）
-     * LatexConfig()
-     *
-     * // 使用内置 KaTeX TTF 字体集
-     * LatexConfig(mathFont = MathFont.KaTeXTTF)
-     *
-     * // 使用自定义 OTF 字体（传入 FontResource，内部异步加载）
-     * LatexConfig(mathFont = MathFont.OTF(Res.font.stix_two_math))
-     *
-     * // 使用自定义 TTF 字体集
-     * LatexConfig(mathFont = MathFont.TTF(customFontFamilies))
-     * ```
-     */
-    val mathFont: MathFont = MathFont.Default,
     /**
      * 交互式公式：点击子表达式时的回调。
      * 传入被点击节点的 LaTeX 源码范围（起始和结束偏移量）。
@@ -346,7 +321,7 @@ internal data class LayoutHints(
  * - 字体状态：fontFamily, fontFamilies, fontWeight, fontStyle, fontVariant, isVariantFontFamily
  * - 样式状态：fontSize, color, errorColor, mathStyle
  * - 布局提示：[layoutHints]（父→子的单向通信，与样式无关）
- * - 排版参数：[mathFontProvider]（OTF MATH 表或 KaTeX 字体的排版参数源）
+ * - 排版参数：[mathFontProvider]（KaTeX 字体度量与 TeX 排版参数源）
  */
 internal data class RenderContext(
     // ── 样式状态 ──
@@ -391,7 +366,7 @@ internal data class RenderContext(
  * 从外部配置创建初始上下文
  *
  * @param isDark 当前环境是否为深色模式，仅在 `LatexTheme.auto(...)` 时参与主题解析
- * @param fontFamilies 已解析的字体家族（由调用方通过 mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies() 提供）
+ * @param fontFamilies 内置 KaTeX TTF 字体家族
  * @param provider 预创建的 MathFontProvider（由调用方缓存，避免每次重组创建新实例）
  */
 internal fun LatexConfig.toContext(
@@ -409,10 +384,7 @@ internal fun LatexConfig.toContext(
     val resolvedErrorColor = if (isDark) Color(0xFFFF6666) else Color(0xFFCC0000)
 
     // 使用调用方传入的 provider（已缓存），或按需创建（兼容旧调用路径）
-    val resolvedProvider = provider ?: MathFontProviderFactory.create(
-        mathFont = mathFont,
-        defaultFontFamilies = fontFamilies
-    )
+    val resolvedProvider = provider ?: MathFontProviderFactory.create(fontFamilies)
 
     return RenderContext(
         fontSize = fontSize,
@@ -455,9 +427,8 @@ internal fun RenderContext.toScriptStyle(): RenderContext {
  */
 internal fun RenderContext.toFractionChildStyle(): RenderContext {
     val newStyle = mathStyle.toFractionChild()
-    val scale = MathConstants.FRACTION_CHILD_SCALE * (newStyle.scaleFactor() / mathStyle.scaleFactor())
     return copy(
-        fontSize = fontSize * scale,
+        fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
         mathStyle = newStyle
     )
 }
@@ -485,8 +456,20 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
     val families = fontFamilies
 
     return when (styleType) {
-        LatexNode.Style.StyleType.BOLD, LatexNode.Style.StyleType.BOLD_SYMBOL -> this
-        LatexNode.Style.StyleType.ITALIC -> copy(fontStyle = FontStyle.Italic)
+        LatexNode.Style.StyleType.BOLD -> copy(
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Normal,
+            fontFamily = families?.main ?: fontFamily,
+            isVariantFontFamily = false
+        )
+
+        LatexNode.Style.StyleType.BOLD_SYMBOL -> copy(fontWeight = FontWeight.Bold)
+
+        LatexNode.Style.StyleType.ITALIC -> copy(
+            fontStyle = FontStyle.Italic,
+            fontFamily = families?.main ?: fontFamily,
+            isVariantFontFamily = false
+        )
         LatexNode.Style.StyleType.ROMAN -> copy(
             fontStyle = FontStyle.Normal,
             fontFamily = families?.main ?: fontFamily,
@@ -495,11 +478,13 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
 
         LatexNode.Style.StyleType.SANS_SERIF -> copy(
             fontFamily = families?.sansSerif ?: fontFamily,
+            fontStyle = FontStyle.Normal,
             isVariantFontFamily = false
         )
 
         LatexNode.Style.StyleType.MONOSPACE -> copy(
             fontFamily = families?.monospace ?: fontFamily,
+            fontStyle = FontStyle.Normal,
             isVariantFontFamily = false
         )
 

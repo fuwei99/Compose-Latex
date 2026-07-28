@@ -30,7 +30,7 @@ package com.hrm.latex.renderer.utils
  * - 命名遵循 TeX 排版术语（sigma, xi, mu），便于与 TeXbook 参数对照。
  * - 值均为 **fontSize 的比例系数**，乘以 fontSizePx 得到像素值。
  *
- * 参考：TeXbook Appendix G (Font Metric Parameters) + OpenType MATH table constants
+ * 参考：TeXbook Appendix G 与 KaTeX font metrics
  */
 internal object MathConstants {
 
@@ -49,7 +49,7 @@ internal object MathConstants {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** 分数线粗细 / fontSize (ξ₈, default rule thickness) */
-    const val FRACTION_RULE_THICKNESS = 0.05f
+    const val FRACTION_RULE_THICKNESS = 0.04f
 
     /** 分数子式（分子/分母）字号缩小因子 */
     const val FRACTION_CHILD_SCALE = 0.9f
@@ -67,9 +67,6 @@ internal object MathConstants {
     /** 根号钩子宽度 / fontSize */
     const val RADICAL_HOOK_WIDTH = 0.3f
 
-    /** 根号指数字号缩放 */
-    const val RADICAL_INDEX_SCALE = 0.6f
-
     /** 根号指数水平偏移系数（相对于 hookWidth） */
     const val RADICAL_INDEX_OFFSET = 0.5f
 
@@ -81,13 +78,13 @@ internal object MathConstants {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** 上标向上偏移 / fontSize (σ₁₃, superscript shift-up) */
-    const val SUPERSCRIPT_SHIFT = 0.45f
+    const val SUPERSCRIPT_SHIFT = 0.363f
 
     /** 下标向下偏移 / fontSize (σ₁₆, subscript shift-down) */
-    const val SUBSCRIPT_SHIFT = 0.25f
+    const val SUBSCRIPT_SHIFT = 0.15f
 
     /** 上下标之间的最小间距 / fontSize */
-    const val SCRIPT_MIN_GAP = 0.1f
+    const val SCRIPT_MIN_GAP = 0.16f
 
     /** 上下标与基础符号之间的水平间距 (dp) */
     const val SCRIPT_KERN_DP = 1.0f
@@ -95,16 +92,6 @@ internal object MathConstants {
     // ═══════════════════════════════════════════════════════════════════════
     // 5. 大型运算符 (Big Operator) 排版参数
     // ═══════════════════════════════════════════════════════════════════════
-
-    /** Display 模式下运算符的字号放大因子 */
-    const val BIG_OP_DISPLAY_SCALE = 1.5f
-
-    /**
-     * Display 模式下积分符号的基础字号放大因子。
-     * 实际渲染采用混合策略：将总拉伸 = fontSize均匀放大 + 剩余垂直scale。
-     * 此值作为初始基础，后续会根据 verticalScale 做混合分解。
-     */
-    const val BIG_OP_INTEGRAL_DISPLAY_SCALE = 1.0f
 
     /**
      * 混合拉伸中 fontSize 均匀放大的分摊比例（0~1）。
@@ -114,38 +101,11 @@ internal object MathConstants {
      */
     const val INTEGRAL_FONT_SCALE_RATIO = 0.5f
 
-    /** 行内模式下运算符的字号放大因子 */
-    const val BIG_OP_INLINE_SCALE = 1.2f
-
-    /** 默认运算符字号放大因子 */
-    const val BIG_OP_DEFAULT_SCALE = 1.3f
-
     /** 上下限字号缩放因子 */
     const val BIG_OP_LIMIT_SCALE = 0.7f
 
-    /** 命名运算符视觉高度/fontSize 系数 */
-    const val BIG_OP_NAMED_VISUAL_HEIGHT = 0.8f
-
     /** 积分符号视觉核心宽度 / fontSize */
     const val INTEGRAL_VISUAL_WIDTH = 0.22f
-
-    /** 命名运算符每字符视觉宽度 / fontSize */
-    const val NAMED_OP_CHAR_WIDTH = 0.45f
-
-    /** 命名运算符 limit 间距 / fontSize */
-    const val NAMED_OP_LIMIT_GAP = 0.02f
-
-    /** 命名运算符 side 间距 / fontSize */
-    const val NAMED_OP_SIDE_LIMIT_GAP = 0.03f
-
-    /** 符号运算符 limit 间距 / fontSize */
-    const val SYMBOL_OP_LIMIT_GAP = 0.2f
-
-    /** 积分下标垂直对齐系数 (下标 baseline 与运算符底部的重叠比例，越大下标越靠上) */
-    const val INTEGRAL_SUBSCRIPT_OVERLAP = 0.85f
-
-    /** 积分下标水平内推偏移 / fontSize */
-    const val INTEGRAL_SUBSCRIPT_INSET = 0.12f
 
     /** 积分高度暗示的过大化系数 */
     const val INTEGRAL_HEIGHT_HINT_OVERSHOOT = 1.05f
@@ -190,54 +150,6 @@ internal object MathConstants {
     // 9. 装饰符号 (Accent) 排版参数
     // ═══════════════════════════════════════════════════════════════════════
 
-    /** 装饰缩放因子（装饰符号相对主内容的字号缩小） */
-    const val ACCENT_SCALE = 0.8f
-
-    /** hat 装饰高度 / fontSize */
-    const val ACCENT_HAT_HEIGHT = 0.52f
-
-    /** hat 装饰下沉偏移 / fontSize */
-    const val ACCENT_HAT_OFFSET = 0.10f
-
-    /** tilde 装饰高度 / fontSize */
-    const val ACCENT_TILDE_HEIGHT = 0.48f
-
-    /** tilde 装饰下沉偏移 / fontSize */
-    const val ACCENT_TILDE_OFFSET = 0.13f
-
-    /** bar 装饰高度 / fontSize */
-    const val ACCENT_BAR_HEIGHT = 0.22f
-
-    /** bar 装饰下沉偏移 / fontSize */
-    const val ACCENT_BAR_OFFSET = 0.12f
-
-    /** vec 装饰高度 / fontSize */
-    const val ACCENT_VEC_HEIGHT = 0.46f
-
-    /** vec 装饰下沉偏移 / fontSize */
-    const val ACCENT_VEC_OFFSET = 0.0f
-
-    /** dot 装饰高度 / fontSize */
-    const val ACCENT_DOT_HEIGHT = 0.26f
-
-    /** dot 装饰下沉偏移 / fontSize */
-    const val ACCENT_DOT_OFFSET = 0.15f
-
-    /** ddot 装饰高度 / fontSize */
-    const val ACCENT_DDOT_HEIGHT = 0.30f
-
-    /** ddot 装饰下沉偏移 / fontSize */
-    const val ACCENT_DDOT_OFFSET = 0.15f
-
-    /** 默认装饰高度 / fontSize */
-    const val ACCENT_DEFAULT_HEIGHT = 0.45f
-
-    /** 默认装饰下沉偏移 / fontSize */
-    const val ACCENT_DEFAULT_OFFSET = 0.24f
-
-    /** 斜体补偿偏移 / fontSize */
-    const val ACCENT_ITALIC_CORRECTION = 0.08f
-
     /** 宽装饰线条/箭头高度 / fontSize */
     const val WIDE_ACCENT_ARROW_HEIGHT = 0.18f
 
@@ -257,29 +169,8 @@ internal object MathConstants {
     /** Stack 上下内容字号缩放因子 */
     const val STACK_SCRIPT_SCALE = 0.7f
 
-    /** Stack 内容箭头拉伸额外宽度比例 */
-    const val STACK_ARROW_EXTRA_WIDTH = 0.5f
-
-    /** Stack 居中符号视觉中线反推系数 (从 baseline 反推) */
-    const val STACK_CENTER_AXIS = 0.45f
-
-    /** Stack 上方内容拉近系数 (centered symbol 场景) */
-    const val STACK_ABOVE_TIGHTEN = 0.15f
-
-    /** Stack 下方内容拉近系数 (centered symbol 场景) */
-    const val STACK_BELOW_LIFT = 0.58f
-
-    /** Stack centered 符号 baseline 系数 */
-    const val CENTERED_SYMBOL_BASELINE = 0.85f
-
-    /** Stack 居中基础符号下缘微调 */
-    const val STACK_BELOW_ATTACH_NUDGE = 0.02f
-
-    /** Stack 最小下移防重叠阈值 (相对于 baseHeight) */
-    const val STACK_MIN_BELOW_THRESHOLD = 0.20f
-
-    /** Stack 上下内容水平偏移 (centered 场景，避免与箭头头部重叠) */
-    const val STACK_SCRIPT_HORIZONTAL_OFFSET = -0.05f
+    /** Stack 标签与基础盒子之间的最小垂直间距 / fontSize。 */
+    const val STACK_VERTICAL_GAP = 0.08f
 
     // ═══════════════════════════════════════════════════════════════════════
     // 11. 可扩展箭头 (ExtensibleArrow) 排版参数
@@ -297,11 +188,8 @@ internal object MathConstants {
     /** 箭头线条粗细 (dp) */
     const val EXTENSIBLE_ARROW_STROKE_DP = 1.5f
 
-    /** 箭头线高 (dp) */
-    const val EXTENSIBLE_ARROW_STROKE_HEIGHT_DP = 2f
-
-    /** 箭头文字间距 (dp) */
-    const val EXTENSIBLE_ARROW_TEXT_GAP_DP = 2f
+    /** 箭头与上下标注之间的间距 / fontSize（KaTeX xArrow: 2mu = 0.111em） */
+    const val EXTENSIBLE_ARROW_TEXT_GAP = 0.111f
 
     // ═══════════════════════════════════════════════════════════════════════
     // 12. Boxed 排版参数

@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
@@ -124,8 +123,7 @@ class LatexMeasurerState internal constructor(
             val document = parseLatex(latex)
             if (document.children.isEmpty()) return null
 
-            val resolvedFontFamilies = config.mathFont.fontFamiliesOrNull() ?: fontFamilies
-            val context = config.toContext(isDarkTheme, resolvedFontFamilies)
+            val context = config.toContext(isDarkTheme, fontFamilies)
 
             val renderResult = LatexRenderer.measure(
                 document.children, context, textMeasurer, density
@@ -182,9 +180,6 @@ class LatexMeasurerState internal constructor(
  * 创建并记住 [LatexMeasurerState] 实例。
  *
  * 必须在 Composable 作用域中调用，以获取 [TextMeasurer] 和 [Density]。
- * 支持 [MathFont.OTF][com.hrm.latex.renderer.font.MathFont.OTF] 的
- * FontResource 异步加载：加载前使用 TTF 降级，加载完成后自动重组。
- *
  * @param config 可选的渲染配置（用于提前加载字体）
  * @return [LatexMeasurerState] 实例
  */
@@ -194,8 +189,7 @@ fun rememberLatexMeasurer(
 ): LatexMeasurerState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val effectiveMathFont = rememberResolvedMathFont(config.mathFont)
-    val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
+    val fontFamilies = defaultLatexFontFamilies()
 
     return remember(density, textMeasurer, fontFamilies) {
         LatexMeasurerState(

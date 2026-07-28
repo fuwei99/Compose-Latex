@@ -35,6 +35,7 @@ import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
+import kotlin.math.max
 import kotlin.reflect.KClass
 
 /**
@@ -100,47 +101,62 @@ internal class DelimiterMeasurer : NodeMeasurer {
         val leftStr = node.left
         val rightStr = node.right
 
-        // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding =
-            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
-        val delimiterHeight = contentLayout.height + delimiterPadding * 2
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
+        val contentDepth = contentLayout.height - contentLayout.baseline
+        val maxDistanceFromAxis = max(
+            contentLayout.baseline - axisHeight,
+            contentDepth + axisHeight
+        )
+        // TeX make_left_right / KaTeX: delimiterFactor=901, shortfall=5pt=.5em.
+        val delimiterHeight = max(
+            2f * maxDistanceFromAxis * 0.901f,
+            2f * maxDistanceFromAxis - fontSizePx * 0.5f
+        )
 
         val leftLayout = if (leftStr.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight, density)
+            centerOnAxis(
+                DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight, density),
+                axisHeight
+            )
         } else null
 
         val rightLayout = if (rightStr.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight, density)
+            centerOnAxis(
+                DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight, density),
+                axisHeight
+            )
         } else null
 
         val leftW = leftLayout?.width ?: 0f
         val rightW = rightLayout?.width ?: 0f
 
         val width = leftW + contentLayout.width + rightW
-        val baseline = contentLayout.baseline + delimiterPadding
+        val baseline = maxOf(
+            contentLayout.baseline,
+            leftLayout?.baseline ?: 0f,
+            rightLayout?.baseline ?: 0f
+        )
+        val descent = maxOf(
+            contentLayout.height - contentLayout.baseline,
+            leftLayout?.let { it.height - it.baseline } ?: 0f,
+            rightLayout?.let { it.height - it.baseline } ?: 0f
+        )
+        val height = baseline + descent
 
-        return NodeLayout(width, delimiterHeight, baseline) { x, y ->
+        return NodeLayout(width, height, baseline) { x, y ->
             var curX = x
 
-            // 括号与内容都从 y 开始绘制
-            // 括号的高度是 delimiterHeight
-            // 内容的高度是 contentLayout.height
-            // 内容应该在括号内垂直居中,所以内容顶部 = y + (delimiterHeight - contentLayout.height) / 2
-            val contentY = y + (delimiterHeight - contentLayout.height) / 2f
-
-            // 绘制左侧括号
             if (leftLayout != null) {
-                leftLayout.draw(this, curX, y)
+                leftLayout.draw(this, curX, y + baseline - leftLayout.baseline)
                 curX += leftLayout.width
             }
 
-            // 绘制内容:垂直居中
-            contentLayout.draw(this, curX, contentY)
+            contentLayout.draw(this, curX, y + baseline - contentLayout.baseline)
             curX += contentLayout.width
 
-            // 绘制右侧括号
             if (rightLayout != null) {
-                rightLayout.draw(this, curX, y)
+                rightLayout.draw(this, curX, y + baseline - rightLayout.baseline)
             }
         }
     }
@@ -174,19 +190,24 @@ internal class DelimiterMeasurer : NodeMeasurer {
             fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
         )
 
-        val result = measurer.measure(AnnotatedString(glyph), delimiterStyle.textStyle())
-
-        // 括号应该相对于数学轴居中
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-        val height = result.size.height.toFloat()
-        val baseline = height / 2f + axisHeight
-
-        return NodeLayout(
-            result.size.width.toFloat(),
-            height,
-            baseline
-        ) { x, y ->
-            drawText(result, topLeft = androidx.compose.ui.geometry.Offset(x, y))
+        val bytes = when {
+            scaleFactor <= 1.0f -> context.fontFamilies?.mainBytes
+            scaleFactor <= 1.2f -> context.fontFamilies?.size1Bytes
+            scaleFactor <= 1.8f -> context.fontFamilies?.size2Bytes
+            scaleFactor <= 2.4f -> context.fontFamilies?.size3Bytes
+            else -> context.fontFamilies?.size4Bytes
         }
+        val measured = DelimiterRenderer.measureText(
+            glyph, delimiterStyle, measurer, bytes, density
+        )
+        return centerOnAxis(measured, axisHeight)
     }
+
+    private fun centerOnAxis(layout: NodeLayout, axisHeight: Float): NodeLayout = NodeLayout(
+        width = layout.width,
+        height = layout.height,
+        baseline = layout.height / 2f + axisHeight,
+        draw = layout.draw
+    )
 }

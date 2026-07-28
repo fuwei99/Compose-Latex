@@ -196,7 +196,7 @@ Style:   Regular | Bold | Italic | BoldItalic
   ├─ 显式 \mathbf{} → Main-Bold
   ├─ 显式 \boldsymbol{} → Math-BoldItalic（优先）或 Main-Bold（回退）
   ├─ 运算符 \sin, \cos → Main-Regular
-  └─ 大型运算符 → Main-Regular 或 Size1~4
+  └─ 大型运算符 → Size1-Regular（行内）/ Size2-Regular（展示模式）
 
 文本模式 (text mode):
   └─ 默认 → Main-Regular，根据 \textbf/\textit 切换字重和样式
@@ -221,3 +221,9 @@ KaTeX 为每个字体的每个字符存储 5 项度量值：
 | width | 字形宽度 | 水平排版间距 |
 
 这些度量数据确保了数学公式在不同字体、不同字符组合下的精确排版。
+
+当前 renderer 以 KaTeX v0.16.11 的 `sigmasAndXis`、逐字形 italic correction、
+Size1–Size4 选择规则，以及 TeX Rule 15（分数）/ Rule 18（上下标）作为 TTF
+measure/layout 的基准。字体不再是 `LatexConfig` 配置项；渲染器固定使用
+内置 KaTeX TTF，定界符、根号和大型运算符统一从 Main/Size1–Size4
+选择字形。

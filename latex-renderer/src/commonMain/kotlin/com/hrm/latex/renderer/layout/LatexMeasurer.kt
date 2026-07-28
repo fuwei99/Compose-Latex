@@ -43,9 +43,6 @@ import com.hrm.latex.renderer.layout.measurer.SideSetTensorMeasurer
 import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.SubstackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TagMeasurer
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.drawText
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
@@ -53,7 +50,6 @@ import com.hrm.latex.renderer.model.TextDirection
 import com.hrm.latex.renderer.model.applyFontSize
 import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
-import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.model.withColor
 import com.hrm.latex.renderer.utils.MathSpacing
 import com.hrm.latex.renderer.utils.lineSpacingPx
@@ -439,35 +435,29 @@ private fun maybeAttachEquationNumber(
     // 获取下一个编号
     val number = numbering.nextNumber()
 
-    // 渲染编号标签 "(N)"
-    val style = context.textStyle()
+    // 渲染编号标签 "(N)"。通过 TextContentMeasurer 复用 KaTeX Main
+    // 字形的墨水边界，避免括号的完整文本行框与数字墨水框混用。
     val fontSizePx = with(density) { context.fontSize.toPx() }
     val gap = fontSizePx * 1.5f // 与 TagMeasurer 保持一致的间距
-
-    val leftParen = textMeasurer.measure(AnnotatedString("("), style)
-    val numberResult = textMeasurer.measure(AnnotatedString(number), style)
-    val rightParen = textMeasurer.measure(AnnotatedString(")"), style)
-
-    val leftW = leftParen.size.width.toFloat()
-    val numberW = numberResult.size.width.toFloat()
-    val rightW = rightParen.size.width.toFloat()
-    val tagWidth = gap + leftW + numberW + rightW
-    val tagBaseline = numberResult.firstBaseline
+    val tagLayout = measureNode(LatexNode.Text("($number)"), context, textMeasurer, density)
+    val tagWidth = gap + tagLayout.width
 
     val totalWidth = contentLayout.width + tagWidth
-    val totalHeight = contentLayout.height
-    val baseline = contentLayout.baseline
+    val baseline = maxOf(contentLayout.baseline, tagLayout.baseline)
+    val depth = maxOf(
+        contentLayout.height - contentLayout.baseline,
+        tagLayout.height - tagLayout.baseline
+    )
+    val totalHeight = baseline + depth
 
     return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
         // 绘制公式内容
-        contentLayout.draw(this, x, y)
+        contentLayout.draw(this, x, y + baseline - contentLayout.baseline)
 
-        // 绘制编号标签 — 垂直居中对齐到内容基线
-        val tagY = y + baseline - tagBaseline
+        // 编号与公式共享同一条数学基线。
+        val tagY = y + baseline - tagLayout.baseline
         val tagX = x + contentLayout.width + gap
-        drawText(leftParen, topLeft = Offset(tagX, tagY))
-        drawText(numberResult, topLeft = Offset(tagX + leftW, tagY))
-        drawText(rightParen, topLeft = Offset(tagX + leftW + numberW, tagY))
+        tagLayout.draw(this, tagX, tagY)
     }
 }
 

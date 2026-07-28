@@ -134,7 +134,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem(
                 "4",
                 "行列式表示",
-                "\\det(A) = \\sum_{\\sigma} \\text{sgn}(\\sigma) \\prod_{i=1}^{n} a_{i,\\sigma(i)}"
+                "\\det(A) = \\sum_{\\sigma \\in S_n} \\operatorname{sgn}(\\sigma) \\prod_{i=1}^{n} a_{i,\\sigma(i)}"
             ),
             PreviewItem("5", "二重积分", "\\int_{0}^{1} \\int_{0}^{1} x^2 + y^2 dx dy"),
             PreviewItem(
@@ -148,6 +148,11 @@ val basicLatexPreviewGroups = listOf(
                 "9",
                 "operatorname 带下标",
                 "\\operatorname{argmax}_{x \\in \\mathbb{R}} f(x)"
+            ),
+            PreviewItem(
+                "9-star",
+                "operatorname* 自动 limits",
+                "\\operatorname*{argmax}_{x \\in \\mathbb{R}} f(x)"
             ),
             PreviewItem("10", "operatorname + limits", "\\operatorname{Res}\\limits_{z=0} f(z)"),
             PreviewItem("11", "mathop + limits", "\\[\\int_0^\\infty  {1 - \\mathop \\prod \\limits_{i = 1}^n \\left( {1 - {e^{ - {p_i}t}}} \\right){\\text{d}}t} \\]"),
@@ -788,6 +793,15 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("11", "symbf 粗体", "\\symbf{x} + \\symbf{\\alpha}"),
             PreviewItem("12", "symsf 无衬线", "\\symsf{ABC}"),
             PreviewItem("13", "symrm 罗马体", "\\symrm{dx}"),
+            PreviewItem("14", "KaTeX 默认字体路由", "xyzABC012 \\quad \\alpha\\beta\\Gamma"),
+            PreviewItem("15", "KaTeX 字体族", "\\mathrm{Ab0} \\quad \\mathbf{Ab0} \\quad \\boldsymbol{x\\alpha}"),
+            PreviewItem("16", "KaTeX 装饰字体", "\\mathbb{R} \\quad \\mathcal{L} \\quad \\mathfrak{g} \\quad \\mathscr{F}"),
+            PreviewItem("17", "基线与上下标", "x_i^2 + f_j^{n+1} = A_k^m"),
+            PreviewItem("18", "Rule 15 分数对齐", "a + \\frac{x^2}{1+y} + b \\quad \\dfrac{x^2}{1+y}"),
+            PreviewItem("19", "定界符与数学轴", "a + \\left(\\dfrac{x_i^2}{1+y}\\right) + b"),
+            PreviewItem("20", "积分上下限", "\\int_{-\\infty}^{\\infty} f(t)e^{-i\\omega t}\\,dt"),
+            PreviewItem("21", "向量重音锚点", "\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\vec r,t)=V(\\vec r,t)\\Psi(\\vec r,t)"),
+            PreviewItem("22", "重音墨迹边界", "\\hat{x} \\quad \\tilde{y} \\quad \\bar{z} \\quad \\dot{x}"),
         )
     ),
     PreviewGroup(

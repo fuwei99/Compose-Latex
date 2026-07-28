@@ -52,7 +52,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 
 - **Sums/Integrals**: `\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`
 - **Limits**: `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`
-- **Custom operators**: `\operatorname{name}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{content}`
+- **Custom operators**: `\operatorname{name}`, `\operatorname*{name}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{content}`
 - **Multi-line subscripts**: `\substack{cond1 \\ cond2}`
 - **Modular arithmetic**: `\bmod` (binary), `\pmod{n}` (parenthesized), `\mod` (wide spacing)
 </details>
@@ -214,6 +214,20 @@ fun MyScreen() {
     )
 }
 ```
+
+### Math Fonts
+
+The bundled KaTeX TTF set is the renderer's only math-font pipeline. Its Main,
+Math, AMS, style and Size1–Size4 fonts are loaded together with matching KaTeX
+metrics, so measurement and drawing always use the same font data.
+
+```kotlin
+// Default: bundled KaTeX TTF fonts
+LatexConfig()
+```
+
+External font injection is intentionally unsupported because KaTeX's layout
+metrics are specific to the bundled font files.
 
 ### Theme Configuration
 

@@ -130,6 +130,7 @@ fun mapBigOp(op: String): String {
         "bigwedge" -> "⋀"
         "bigoplus" -> "⨁"
         "bigotimes" -> "⨂"
+        "bigodot" -> "⨀"
         "biguplus" -> "⨄"
         else -> name
     }

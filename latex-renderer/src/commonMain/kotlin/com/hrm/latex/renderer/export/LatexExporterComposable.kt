@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
@@ -127,12 +126,10 @@ class LatexExporterState internal constructor(
             val scale = exportConfig.scale.coerceIn(0.5f, 8f)
             val format = exportConfig.format
             val quality = exportConfig.quality.coerceIn(1, 100)
-            val resolvedFontFamilies = config.mathFont.fontFamiliesOrNull() ?: fontFamilies
-
             // 核心：用放大后的 fontSize 创建渲染上下文，而非用 Canvas scale
             // 这样 TextMeasurer 会以目标字号测量文本，字体引擎以正确字号光栅化
             val scaledConfig = config.copy(fontSize = config.fontSize * scale)
-            val context = scaledConfig.toContext(isDarkTheme, resolvedFontFamilies)
+            val context = scaledConfig.toContext(isDarkTheme, fontFamilies)
             val resolvedThemeColors = scaledConfig.resolveThemeColors(isDarkTheme)
 
             // 使用 LatexRenderer 共享逻辑进行测量（与 LatexDocument 同一份代码）
@@ -203,8 +200,7 @@ class LatexExporterState internal constructor(
  * 创建并记住 [LatexExporterState] 实例
  *
  * 必须在 Composable 作用域中调用，以获取 [TextMeasurer] 和 [Density]。
- * 支持 [MathFont.OTF] 的 FontResource 异步加载：加载前使用 TTF 降级，
- * 加载完成后自动重组以使用 OTF 字体导出。
+ * 导出与屏幕渲染共用内置 KaTeX TTF 字体集。
  *
  * @param config 可选的渲染配置（用于提前加载字体）
  * @return [LatexExporterState] 实例
@@ -215,8 +211,7 @@ fun rememberLatexExporter(
 ): LatexExporterState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val effectiveMathFont = rememberResolvedMathFont(config.mathFont)
-    val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
+    val fontFamilies = defaultLatexFontFamilies()
 
     val exporter = remember(density, textMeasurer, fontFamilies) {
         LatexExporterState(

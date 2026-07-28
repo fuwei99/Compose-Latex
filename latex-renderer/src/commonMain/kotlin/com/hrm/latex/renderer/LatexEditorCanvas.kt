@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.layout.LayoutCache
 import com.hrm.latex.renderer.layout.LayoutMap
 import com.hrm.latex.renderer.layout.LatexRenderer
@@ -89,11 +90,13 @@ fun LatexEditorCanvas(
     overlay: (DrawScope.() -> Unit)? = null
 ) {
     val resolvedThemeColors = config.resolveThemeColors(isDarkTheme)
-    val fontFamilies = config.mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
-
-    // fontFamilies 中的 bytes 字段已由 MathFont.OTF 构造时同步注入，
-    // 或由 MathFont.Default/TTF 的调用方在外部设置。无需二次异步加载。
-    val context = config.toContext(isDarkTheme, fontFamilies)
+    val fontFamilies = defaultLatexFontFamilies()
+    val provider = remember(fontFamilies) {
+        MathFontProviderFactory.create(fontFamilies)
+    }
+    val context = remember(config, isDarkTheme, fontFamilies, provider) {
+        config.toContext(isDarkTheme, fontFamilies, provider)
+    }
 
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current

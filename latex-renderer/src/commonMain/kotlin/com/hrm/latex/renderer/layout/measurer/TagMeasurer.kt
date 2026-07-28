@@ -22,15 +22,11 @@
 
 package com.hrm.latex.renderer.layout.measurer
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.textStyle
 import kotlin.reflect.KClass
 
 /**
@@ -61,20 +57,34 @@ internal class TagMeasurer : NodeMeasurer {
                 labelLayout.draw(this, x + gap, y)
             }
         } else {
-            val parenStyle = context.textStyle()
-            val leftParen = measurer.measure(AnnotatedString("("), parenStyle)
-            val rightParen = measurer.measure(AnnotatedString(")"), parenStyle)
+            // Parentheses must use the same KaTeX glyph measurement as the
+            // label. Drawing raw TextLayoutResults from the same top position
+            // mixes a full line box with the label's trimmed ink box and makes
+            // the parentheses appear lower.
+            val leftParen = measureNode(LatexNode.Text("("), context)
+            val rightParen = measureNode(LatexNode.Text(")"), context)
 
-            val leftW = leftParen.size.width.toFloat()
-            val rightW = rightParen.size.width.toFloat()
-            val totalWidth = gap + leftW + labelLayout.width + rightW
-            val height = labelLayout.height
-            val baseline = labelLayout.baseline
+            val baseline = maxOf(leftParen.baseline, labelLayout.baseline, rightParen.baseline)
+            val depth = maxOf(
+                leftParen.height - leftParen.baseline,
+                labelLayout.height - labelLayout.baseline,
+                rightParen.height - rightParen.baseline
+            )
+            val totalWidth = gap + leftParen.width + labelLayout.width + rightParen.width
+            val height = baseline + depth
 
             return NodeLayout(totalWidth, height, baseline) { x, y ->
-                drawText(leftParen, topLeft = Offset(x + gap, y))
-                labelLayout.draw(this, x + gap + leftW, y)
-                drawText(rightParen, topLeft = Offset(x + gap + leftW + labelLayout.width, y))
+                leftParen.draw(this, x + gap, y + baseline - leftParen.baseline)
+                labelLayout.draw(
+                    this,
+                    x + gap + leftParen.width,
+                    y + baseline - labelLayout.baseline
+                )
+                rightParen.draw(
+                    this,
+                    x + gap + leftParen.width + labelLayout.width,
+                    y + baseline - rightParen.baseline
+                )
             }
         }
     }

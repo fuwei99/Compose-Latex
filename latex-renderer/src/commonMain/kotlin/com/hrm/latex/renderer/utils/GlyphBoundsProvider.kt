@@ -57,7 +57,7 @@ class GlyphBounds(
  *
  * @param text 要测量的文本（通常是单个字符或运算符符号）
  * @param fontSizePx 字号大小，像素单位
- * @param fontBytes 字体文件的字节数据（TTF/OTF），用于创建原生字体对象
+ * @param fontBytes KaTeX TTF 字体文件的字节数据，用于创建原生字体对象
  * @param fontWeightValue 字重值 (100-900)，默认 400 (Normal)
  * @return 精确的墨水边界，如果测量失败返回 null
  */

@@ -22,3 +22,4 @@
 - 只支持 JVM/Desktop 平台
 - 可以在这里测试各种 LaTeX 表达式的渲染效果
 - `BasicLatexPreview` 中包含独立的主题示例分组，可直接验证 `LatexTheme` 新 API 的表现
+- `数学模式切换` 分组包含 KaTeX 字体路由、Rule 15/18、积分上下限、重音符号和定界符数学轴回归样例

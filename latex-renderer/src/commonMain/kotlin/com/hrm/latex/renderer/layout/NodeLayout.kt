@@ -35,12 +35,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
  * @property width 墨水边界宽度（包含 Stroke 半宽、斜体悬伸等所有可能产生像素的区域）
  * @property height 墨水边界高度
  * @property baseline 基线距离顶部的距离，始终 >= 0
+ * @property italicCorrection 字形右侧斜体修正；上标保留，下标会回退该距离
  * @property draw 绘制回调。(x, y) 是元素左上角的绝对画布坐标，由父级传入。
  */
 class NodeLayout(
     val width: Float,
     val height: Float,
     val baseline: Float,
+    val italicCorrection: Float = 0f,
     val draw: DrawScope.(x: Float, y: Float) -> Unit
 ) {
     companion object {

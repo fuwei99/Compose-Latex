@@ -27,7 +27,8 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.shrink
+import com.hrm.latex.renderer.model.MathStyle
+import com.hrm.latex.renderer.model.toFractionChildStyle
 import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
@@ -55,38 +56,79 @@ internal class BinomialMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         node as LatexNode.Binomial
-        val childStyle = context.shrink(MathConstants.BINOMIAL_CHILD_SCALE)
+        val childStyle = context.toFractionChildStyle()
         val numLayout = measureGroup(listOf(node.top), childStyle)
         val denLayout = measureGroup(listOf(node.bottom), childStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val gap = fontSizePx * MathConstants.BINOMIAL_GAP
+        val provider = context.mathFontProvider
+        val defaultRuleThickness = provider?.fractionRuleThickness(fontSizePx)
+            ?: fontSizePx * 0.04f
+        val displayStyle = context.mathStyle == MathStyle.DISPLAY
+        var numeratorShift = provider?.fractionNumeratorShiftUp(
+            fontSizePx, displayStyle, hasRule = false
+        ) ?: fontSizePx * if (displayStyle) 0.677f else 0.444f
+        var denominatorShift = provider?.fractionDenominatorShiftDown(fontSizePx, displayStyle)
+            ?: fontSizePx * if (displayStyle) 0.686f else 0.345f
+        val clearance = defaultRuleThickness * if (displayStyle) 7f else 3f
+        val currentClearance = (numeratorShift - (numLayout.height - numLayout.baseline)) -
+            (denLayout.baseline - denominatorShift)
+        if (currentClearance < clearance) {
+            val adjustment = (clearance - currentClearance) / 2f
+            numeratorShift += adjustment
+            denominatorShift += adjustment
+        }
+
         val contentWidth = max(numLayout.width, denLayout.width)
-        val contentHeight = numLayout.height + denLayout.height + gap
-
-        val delimiterPadding = fontSizePx * MathConstants.DELIMITER_PADDING
-        val delimiterHeight = contentHeight + delimiterPadding * 2
-
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-        val center = numLayout.height + gap / 2f + delimiterPadding
-        val baseline = center + axisHeight
+        val contentTop = minOf(
+            -numeratorShift - numLayout.baseline,
+            denominatorShift - denLayout.baseline
+        )
+        val contentBottom = maxOf(
+            -numeratorShift + numLayout.height - numLayout.baseline,
+            denominatorShift + denLayout.height - denLayout.baseline
+        )
+        val contentBaseline = -contentTop
+        val contentHeight = contentBottom - contentTop
 
-        val leftLayout = DelimiterRenderer.measureScaled("(", context, measurer, delimiterHeight, density)
-        val rightLayout = DelimiterRenderer.measureScaled(")", context, measurer, delimiterHeight, density)
+        val delimiterTarget = fontSizePx * if (displayStyle) 2.39f else 1.01f
+        fun centered(layout: NodeLayout) = NodeLayout(
+            layout.width, layout.height, layout.height / 2f + axisHeight, draw = layout.draw
+        )
+        val leftLayout = centered(
+            DelimiterRenderer.measureScaled("(", context, measurer, delimiterTarget, density)
+        )
+        val rightLayout = centered(
+            DelimiterRenderer.measureScaled(")", context, measurer, delimiterTarget, density)
+        )
 
         val width = leftLayout.width + contentWidth + rightLayout.width
+        val baseline = maxOf(contentBaseline, leftLayout.baseline, rightLayout.baseline)
+        val descent = maxOf(
+            contentHeight - contentBaseline,
+            leftLayout.height - leftLayout.baseline,
+            rightLayout.height - rightLayout.baseline
+        )
+        val height = baseline + descent
 
-        return NodeLayout(width, delimiterHeight, baseline) { x, y ->
-            val contentY = y + (delimiterHeight - contentHeight) / 2f
-
-            leftLayout.draw(this, x, y)
+        return NodeLayout(width, height, baseline) { x, y ->
+            leftLayout.draw(this, x, y + baseline - leftLayout.baseline)
 
             val numX = x + leftLayout.width + (contentWidth - numLayout.width) / 2
             val denX = x + leftLayout.width + (contentWidth - denLayout.width) / 2
-            numLayout.draw(this, numX, contentY)
-            denLayout.draw(this, denX, contentY + numLayout.height + gap)
+            numLayout.draw(
+                this, numX, y + baseline - numeratorShift - numLayout.baseline
+            )
+            denLayout.draw(
+                this, denX, y + baseline + denominatorShift - denLayout.baseline
+            )
 
-            rightLayout.draw(this, x + leftLayout.width + contentWidth, y)
+            rightLayout.draw(
+                this,
+                x + leftLayout.width + contentWidth,
+                y + baseline - rightLayout.baseline
+            )
         }
     }
 }

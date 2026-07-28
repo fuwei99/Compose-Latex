@@ -52,7 +52,7 @@
 
 - **求和/积分**：`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`
 - **极限类**：`\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`
-- **自定义运算符**：`\operatorname{名称}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{内容}`
+- **自定义运算符**：`\operatorname{名称}`, `\operatorname*{名称}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{内容}`
 - **多行下标**：`\substack{条件1 \\ 条件2}`
 - **取模运算**：`\bmod`（二元取模）, `\pmod{n}`（括号取模）, `\mod`（宽间距取模）
 </details>
@@ -214,6 +214,19 @@ fun MyScreen() {
     )
 }
 ```
+
+### 数学字体
+
+内置 KaTeX TTF 字体集是渲染器唯一的数学字体管线。Main、Math、AMS、各风格
+字体、Size1–Size4 与 KaTeX metrics 会作为一个整体加载，保证测量与绘制使用
+同一组字体数据。
+
+```kotlin
+// 默认：内置 KaTeX TTF 字体
+LatexConfig()
+```
+
+不支持外部字体注入，因为 KaTeX 排版 metrics 只适用于配套的内置字体文件。
 
 ### 主题配置
 

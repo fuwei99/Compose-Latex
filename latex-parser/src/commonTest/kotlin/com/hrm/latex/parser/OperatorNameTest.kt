@@ -53,6 +53,26 @@ class OperatorNameTest {
         val bigOp = result.children[0]
         assertIs<LatexNode.BigOperator>(bigOp)
         assertEquals("Tr", bigOp.operator)
+        assertEquals(false, bigOp.limitsInDisplay)
+    }
+
+    @Test
+    fun should_parse_starred_operatorname_with_display_limits() {
+        val result = parser.parse("\\operatorname*{argmax}_{x}")
+        val bigOp = result.children[0]
+        assertIs<LatexNode.BigOperator>(bigOp)
+        assertEquals("argmax", bigOp.operator)
+        assertEquals(true, bigOp.limitsInDisplay)
+    }
+
+    @Test
+    fun should_distinguish_builtin_limit_and_nonlimit_operators() {
+        val det = parser.parse("\\det_{A}").children[0]
+        val arg = parser.parse("\\arg_{A}").children[0]
+        assertIs<LatexNode.BigOperator>(det)
+        assertIs<LatexNode.BigOperator>(arg)
+        assertEquals(true, det.limitsInDisplay)
+        assertEquals(false, arg.limitsInDisplay)
     }
 
     @Test

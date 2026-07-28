@@ -30,7 +30,6 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.utils.MathConstants
-import com.hrm.latex.renderer.utils.isCenteredSymbol
 import kotlin.math.max
 import kotlin.reflect.KClass
 
@@ -79,12 +78,8 @@ internal class StackMeasurer : NodeMeasurer {
             baseNode = unwrapSingleGroup(inner.base)
         }
 
-        // 测量基础内容（保持原样式）- 包装成List确保作为整体渲染
-        var baseLayout = measureGroup(listOf(baseNode), context)
-
-        // 对于 centered 符号（箭头等），如果有上下堆叠，需要拉长箭头以匹配上下内容的宽度
-        val isCenteredBase =
-            (baseNode as? LatexNode.Symbol)?.symbol?.let { isCenteredSymbol(it) } == true
+        // 基础内容已是按 KaTeX TTF 真实墨迹边界测量的盒子。
+        val baseLayout = measureGroup(listOf(baseNode), context)
 
         // 上下内容使用较小字体（0.7倍）
         val scriptStyle = context.shrink(MathConstants.STACK_SCRIPT_SCALE)
@@ -95,93 +90,38 @@ internal class StackMeasurer : NodeMeasurer {
         // 测量下方内容（如果有）- 包装成List
         val belowLayout = belowNode?.let { measureGroup(listOf(it), scriptStyle) }
 
-        // 如果是 centered 符号且有上下堆叠，拉长基础符号以匹配上下内容宽度
-        if (isCenteredBase && (aboveLayout != null || belowLayout != null)) {
-            val maxScriptWidth = max(aboveLayout?.width ?: 0f, belowLayout?.width ?: 0f)
-            if (maxScriptWidth > baseLayout.width) {
-                // 拉长箭头：增加更多额外宽度避免重叠
-                val extraWidth = maxScriptWidth * MathConstants.STACK_ARROW_EXTRA_WIDTH
-                val targetWidth = maxScriptWidth + extraWidth
-                baseLayout =
-                    NodeLayout(targetWidth, baseLayout.height, baseLayout.baseline, draw = baseLayout.draw)
-            }
-        }
-
         // 计算总宽度（取最宽的元素）
         val totalWidth = max(
             baseLayout.width,
             max(aboveLayout?.width ?: 0f, belowLayout?.width ?: 0f)
         )
 
-        // 不要用间距，尽量贴合
-        val gap = 0f
-
-        // centered 符号（如箭头/等号）在 TextContentMeasurer 里会把 baseline 调到 height*0.85 来"上移居中"。
-        // 这会导致：如果我们用 height*0.5 当附着点，实际上是在贴"行高盒子"，而不是贴符号的墨迹。
-        // 这里用一个更稳定的启发式：从被抬高的 baseline 反推视觉中线。
-        // - 对箭头：baseline≈0.85h => 视觉中线更靠上，可用 (baseline - 0.45h) 近似
-        // - 对非 centered：仍按顶/底堆叠
-        val axis =
-            if (isCenteredBase) baseLayout.baseline - baseLayout.height * MathConstants.STACK_CENTER_AXIS else 0f
-
-        // centered 符号的行高盒子上下留白很大，优化上下间距
-        // - 上方: 0.15 (减小拉近力度，让上方内容离箭头远一些，往上移)
-        // - 下方: 0.58 (极限拉近，让下方内容紧贴箭头)
-        val aboveTighten = if (isCenteredBase) MathConstants.STACK_ABOVE_TIGHTEN else 0f
-        val belowLift = if (isCenteredBase) MathConstants.STACK_BELOW_LIFT else 0f
-
-        val attachAbove = if (isCenteredBase) axis else 0f
-        // 下方附着点用 baseline 附近更稳定：对 \to 这类符号 baseline 被抬高，接近符号下缘
-        val attachBelow =
-            if (isCenteredBase) baseLayout.baseline + baseLayout.height * MathConstants.STACK_BELOW_ATTACH_NUDGE else baseLayout.height
-
-        val baseY = 0f
-        // 上方：贴底后向下拉近；下方：贴顶后向上轻微拉近，并做最小下移防重叠
-        val aboveY = aboveLayout?.let { (attachAbove - gap - it.height) + it.height * aboveTighten }
-        val belowY = if (belowLayout != null) {
-            val raw = (attachBelow + gap) - belowLayout.height * belowLift
-            // 极低防重叠阈值: 0.20，让下方内容极限靠近箭头
-            if (isCenteredBase) maxOf(
-                raw,
-                baseLayout.height * MathConstants.STACK_MIN_BELOW_THRESHOLD
-            ) else raw
-        } else null
-
-        val top = minOf(
-            baseY,
-            aboveY ?: baseY,
-            belowY ?: baseY
-        )
-        val bottom = maxOf(
-            baseY + baseLayout.height,
-            (aboveY ?: baseY) + (aboveLayout?.height ?: 0f),
-            (belowY ?: baseY) + (belowLayout?.height ?: 0f)
-        )
-
-        val totalHeight = bottom - top
-        val baseline = (baseY + baseLayout.baseline) - top
+        // 严格使用三段盒模型，不再依赖旧行框的经验偏移。
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val gap = fontSizePx * MathConstants.STACK_VERTICAL_GAP
+        val aboveY = aboveLayout?.let { 0f }
+        val baseY = (aboveLayout?.height ?: 0f) + if (aboveLayout != null) gap else 0f
+        val belowY = belowLayout?.let { baseY + baseLayout.height + gap }
+        val totalHeight = if (belowLayout != null) {
+            baseY + baseLayout.height + gap + belowLayout.height
+        } else {
+            baseY + baseLayout.height
+        }
+        val baseline = baseY + baseLayout.baseline
 
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
-            val offsetY = y - top
-
             // 绘制基础内容（居中对齐）
             val baseX = x + (totalWidth - baseLayout.width) / 2
-            baseLayout.draw(this, baseX, offsetY + baseY)
-
-            // 绘制上方内容（如果有，居中对齐，贴合附着点）
-            // 对于 centered 符号，上下内容稍微往左偏移一点点，避免与箭头头部重叠
-            val scriptOffset =
-                if (isCenteredBase) totalWidth * MathConstants.STACK_SCRIPT_HORIZONTAL_OFFSET else 0f
+            baseLayout.draw(this, baseX, y + baseY)
 
             aboveLayout?.let { layout ->
-                val aboveX = x + (totalWidth - layout.width) / 2 + scriptOffset
-                layout.draw(this, aboveX, offsetY + (aboveY ?: 0f))
+                val aboveX = x + (totalWidth - layout.width) / 2
+                layout.draw(this, aboveX, y + (aboveY ?: 0f))
             }
 
-            // 绘制下方内容（如果有，居中对齐，贴合附着点）
             belowLayout?.let { layout ->
-                val belowX = x + (totalWidth - layout.width) / 2 + scriptOffset
-                layout.draw(this, belowX, offsetY + (belowY ?: 0f))
+                val belowX = x + (totalWidth - layout.width) / 2
+                layout.draw(this, belowX, y + (belowY ?: 0f))
             }
         }
     }

@@ -24,7 +24,6 @@ package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
@@ -194,32 +193,49 @@ internal class ScriptMeasurer : NodeMeasurer {
         val otherScriptLayout = measureNode(otherScriptNode, scriptStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
+        val scriptFontSizePx = with(density) { scriptStyle.fontSize.toPx() }
         val provider = context.mathFontProvider
-        val superscriptShift = provider?.superscriptShiftUp(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
-        val subscriptShift = provider?.subscriptShiftDown(fontSizePx)
+        val minSuperscriptShift = provider?.superscriptShiftUp(
+            fontSizePx,
+            displayStyle = context.mathStyle == com.hrm.latex.renderer.model.MathStyle.DISPLAY,
+            crampedStyle = false
+        ) ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val minSubscriptShift = provider?.subscriptShiftDown(fontSizePx, hasSuperscript = true)
             ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
-        val scriptX =
-            realBaseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
 
         val superLayout = if (isSuper) currentScriptLayout else otherScriptLayout
         val subLayout = if (isSuper) otherScriptLayout else currentScriptLayout
-        var superRelY = -superscriptShift
-        var subRelY = subscriptShift
+        val characterBox = isCharacterBox(realBase)
+        var superShift = if (characterBox) 0f else {
+            realBaseLayout.baseline - (provider?.superscriptDrop(scriptFontSizePx) ?: 0f)
+        }
+        var subShift = if (characterBox) 0f else {
+            (realBaseLayout.height - realBaseLayout.baseline) +
+                (provider?.subscriptDrop(scriptFontSizePx) ?: 0f)
+        }
+
+        val xHeight = provider?.xHeight(fontSizePx) ?: fontSizePx * 0.431f
+        val superDepth = superLayout.height - superLayout.baseline
+        superShift = maxOf(superShift, minSuperscriptShift, superDepth + 0.25f * xHeight)
+        subShift = maxOf(subShift, minSubscriptShift)
 
         // 上下标重叠保护（TeXbook Rule 18e）：
         // 确保上标底部与下标顶部之间至少有 4 × ruleThickness 的间距
         val ruleThickness = provider?.fractionRuleThickness(fontSizePx)
             ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
-        val minGap = ruleThickness * 4f
-        val superBottom = superRelY + (superLayout.height - superLayout.baseline)
-        val subTop = subRelY - subLayout.baseline
-        val currentGap = subTop - superBottom
+        val minGap = provider?.subSuperscriptGapMin(fontSizePx) ?: ruleThickness * 4f
+        val currentGap = (superShift - superDepth) - (subLayout.baseline - subShift)
         if (currentGap < minGap) {
-            val pushEach = (minGap - currentGap) / 2f
-            superRelY -= pushEach
-            subRelY += pushEach
+            subShift += minGap - currentGap
+            val psi = 0.8f * xHeight - (superShift - superDepth)
+            if (psi > 0f) {
+                superShift += psi
+                subShift -= psi
+            }
         }
+
+        val superRelY = -superShift
+        val subRelY = subShift
 
         val superTopRel = superRelY - superLayout.baseline
         val superBottomRel = superRelY + (superLayout.height - superLayout.baseline)
@@ -233,12 +249,19 @@ internal class ScriptMeasurer : NodeMeasurer {
 
         val totalHeight = maxBottomRel - maxTopRel
         val baseline = -maxTopRel
-        val width = scriptX + maxOf(superLayout.width, subLayout.width)
+        val superX = realBaseLayout.width
+        val subX = (realBaseLayout.width - realBaseLayout.italicCorrection).coerceAtLeast(0f)
+        val scriptSpace = provider?.spaceAfterScript(fontSizePx) ?: fontSizePx * 0.05f
+        val width = maxOf(
+            realBaseLayout.width,
+            superX + superLayout.width,
+            subX + subLayout.width
+        ) + scriptSpace
 
         return NodeLayout(width, totalHeight, baseline) { x, y ->
             realBaseLayout.draw(this, x, y + baseline - realBaseLayout.baseline)
-            superLayout.draw(this, x + scriptX, y + baseline + superRelY - superLayout.baseline)
-            subLayout.draw(this, x + scriptX, y + baseline + subRelY - subLayout.baseline)
+            superLayout.draw(this, x + superX, y + baseline + superRelY - superLayout.baseline)
+            subLayout.draw(this, x + subX, y + baseline + subRelY - subLayout.baseline)
         }
     }
 
@@ -255,13 +278,31 @@ internal class ScriptMeasurer : NodeMeasurer {
         val scriptLayout = measureNode(scriptNode, scriptStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
+        val scriptFontSizePx = with(density) { scriptStyle.fontSize.toPx() }
         val provider = context.mathFontProvider
-        val superscriptShift = provider?.superscriptShiftUp(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
-        val subscriptShift = provider?.subscriptShiftDown(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
-        val scriptX = baseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
-        val scriptRelY = if (isSuper) -superscriptShift else subscriptShift
+        val characterBox = isCharacterBox(baseNode)
+        val xHeight = provider?.xHeight(fontSizePx) ?: fontSizePx * 0.431f
+        val scriptDepth = scriptLayout.height - scriptLayout.baseline
+        val shift = if (isSuper) {
+            val initial = if (characterBox) 0f else {
+                baseLayout.baseline - (provider?.superscriptDrop(scriptFontSizePx) ?: 0f)
+            }
+            val minimum = provider?.superscriptShiftUp(
+                fontSizePx,
+                displayStyle = context.mathStyle == com.hrm.latex.renderer.model.MathStyle.DISPLAY,
+                crampedStyle = false
+            ) ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+            maxOf(initial, minimum, scriptDepth + 0.25f * xHeight)
+        } else {
+            val initial = if (characterBox) 0f else {
+                (baseLayout.height - baseLayout.baseline) +
+                    (provider?.subscriptDrop(scriptFontSizePx) ?: 0f)
+            }
+            val minimum = provider?.subscriptShiftDown(fontSizePx, hasSuperscript = false)
+                ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
+            maxOf(initial, minimum, scriptLayout.baseline - 0.8f * xHeight)
+        }
+        val scriptRelY = if (isSuper) -shift else shift
 
         val scriptTopRel = scriptRelY - scriptLayout.baseline
         val scriptBottomRel = scriptRelY + (scriptLayout.height - scriptLayout.baseline)
@@ -273,11 +314,20 @@ internal class ScriptMeasurer : NodeMeasurer {
 
         val totalHeight = maxBottomRel - maxTopRel
         val baseline = -maxTopRel
-        val width = scriptX + scriptLayout.width
+        val scriptX = if (isSuper) baseLayout.width
+        else (baseLayout.width - baseLayout.italicCorrection).coerceAtLeast(0f)
+        val scriptSpace = provider?.spaceAfterScript(fontSizePx) ?: fontSizePx * 0.05f
+        val width = max(baseLayout.width, scriptX + scriptLayout.width) + scriptSpace
 
         return NodeLayout(width, totalHeight, baseline) { x, y ->
             baseLayout.draw(this, x, y + baseline - baseLayout.baseline)
             scriptLayout.draw(this, x + scriptX, y + baseline + scriptRelY - scriptLayout.baseline)
         }
+    }
+
+    private fun isCharacterBox(node: LatexNode): Boolean = when (node) {
+        is LatexNode.Text -> node.content.length == 1
+        is LatexNode.Symbol -> true
+        else -> false
     }
 }

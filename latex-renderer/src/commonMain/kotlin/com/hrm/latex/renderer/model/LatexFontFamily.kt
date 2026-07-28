@@ -5,7 +5,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -77,13 +76,18 @@ data class LatexFontFamilies(
     val size3: FontFamily,            // KaTeX_Size3 — \bigg
     val size4: FontFamily,            // KaTeX_Size4 — \Bigg
 
-    // === 字体字节数据 Font Bytes (用于精确 glyph bounds 测量 & OTF MATH 表解析) ===
-    /** 主字体字节数据 — 精确墨水边界测量 & OTF MATH 表解析所需 */
+    // === 字体字节数据 Font Bytes（用于精确 glyph bounds 测量） ===
+    /** 主字体字节数据 — 精确墨迹边界测量所需 */
     val mainBytes: ByteArray? = null,
     /** 数学字体字节数据 — 数学斜体精确测量所需 */
     val mathBytes: ByteArray? = null,
+    /** AMS 字体字节数据 */
+    val amsBytes: ByteArray? = null,
     /** Size1 字体字节数据 — 定界符精确测量所需 */
     val size1Bytes: ByteArray? = null,
+    val size2Bytes: ByteArray? = null,
+    val size3Bytes: ByteArray? = null,
+    val size4Bytes: ByteArray? = null,
 
     ) {
     /** 根据字体类别获取对应的 FontFamily */
@@ -123,7 +127,11 @@ data class LatexFontFamilies(
         if (size4 != other.size4) return false
         if (!mainBytes.contentEquals(other.mainBytes)) return false
         if (!mathBytes.contentEquals(other.mathBytes)) return false
+        if (!amsBytes.contentEquals(other.amsBytes)) return false
         if (!size1Bytes.contentEquals(other.size1Bytes)) return false
+        if (!size2Bytes.contentEquals(other.size2Bytes)) return false
+        if (!size3Bytes.contentEquals(other.size3Bytes)) return false
+        if (!size4Bytes.contentEquals(other.size4Bytes)) return false
 
         return true
     }
@@ -143,30 +151,13 @@ data class LatexFontFamilies(
         result = 31 * result + size4.hashCode()
         result = 31 * result + (mainBytes?.contentHashCode() ?: 0)
         result = 31 * result + (mathBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (amsBytes?.contentHashCode() ?: 0)
         result = 31 * result + (size1Bytes?.contentHashCode() ?: 0)
+        result = 31 * result + (size2Bytes?.contentHashCode() ?: 0)
+        result = 31 * result + (size3Bytes?.contentHashCode() ?: 0)
+        result = 31 * result + (size4Bytes?.contentHashCode() ?: 0)
         return result
     }
-}
-
-fun createLatexFontFamilies(fonts: Font, fontBytes: ByteArray): LatexFontFamilies {
-    val fontFamily = FontFamily(fonts)
-    return LatexFontFamilies(
-        main = fontFamily,
-        math = fontFamily,
-        ams = fontFamily,
-        sansSerif = fontFamily,
-        monospace = fontFamily,
-        caligraphic = fontFamily,
-        fraktur = fontFamily,
-        script = fontFamily,
-        size1 = fontFamily,
-        size2 = fontFamily,
-        size3 = fontFamily,
-        size4 = fontFamily,
-        mainBytes = fontBytes,
-        mathBytes = fontBytes,
-        size1Bytes = fontBytes
-    )
 }
 
 private const val TAG = "LatexFontFamily"
@@ -274,12 +265,20 @@ private suspend fun loadDefaultFontBytes() {
         val environment = getSystemResourceEnvironment()
         val mainBytes = getFontResourceBytes(environment, Res.font.katex_main_regular)
         val mathBytes = getFontResourceBytes(environment, Res.font.katex_math_italic)
+        val amsBytes = getFontResourceBytes(environment, Res.font.katex_ams_regular)
         val size1Bytes = getFontResourceBytes(environment, Res.font.katex_size1_regular)
+        val size2Bytes = getFontResourceBytes(environment, Res.font.katex_size2_regular)
+        val size3Bytes = getFontResourceBytes(environment, Res.font.katex_size3_regular)
+        val size4Bytes = getFontResourceBytes(environment, Res.font.katex_size4_regular)
 
         defaultFontFamiliesState = current.copy(
             mainBytes = mainBytes,
             mathBytes = mathBytes,
-            size1Bytes = size1Bytes
+            amsBytes = amsBytes,
+            size1Bytes = size1Bytes,
+            size2Bytes = size2Bytes,
+            size3Bytes = size3Bytes,
+            size4Bytes = size4Bytes
         )
         fontBytesLoaded = true
     } catch (e: Exception) {

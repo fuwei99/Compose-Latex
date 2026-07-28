@@ -34,6 +34,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 import kotlin.reflect.KClass
@@ -73,22 +74,30 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         val arrowHeadSize = with(density) { MathConstants.EXTENSIBLE_ARROW_HEAD_SIZE_DP.dp.toPx() }
 
         val totalWidth = contentWidth + padding * 2
-        val arrowStrokeHeight = with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_HEIGHT_DP.dp.toPx() }
-        val topGap = with(density) { MathConstants.EXTENSIBLE_ARROW_TEXT_GAP_DP.dp.toPx() }
-        val bottomGap = with(density) { MathConstants.EXTENSIBLE_ARROW_TEXT_GAP_DP.dp.toPx() }
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val labelGap = fontSizePx * MathConstants.EXTENSIBLE_ARROW_TEXT_GAP
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
 
-        // 相对 Y 坐标
-        val aboveRelY = strokeHalf // 顶部留出 Stroke 半宽
-        val arrowRelY = aboveRelY + aboveLayout.height + topGap
-        val belowRelY = arrowRelY + arrowStrokeHeight + bottomGap
+        // Path 的实际墨水高度由箭头头部决定，而不是中间横线的 strokeWidth。
+        // 钩形箭头在数学轴下方多伸出 0.1 * headSize。
+        val arrowTopExtent = arrowHeadSize / 2f
+        val arrowBottomExtent = if (
+            node.direction == LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT ||
+            node.direction == LatexNode.ExtensibleArrow.Direction.HOOK_LEFT
+        ) arrowHeadSize * 0.6f else arrowHeadSize / 2f
 
-        val totalHeight = if (belowLayout != null) {
-            belowRelY + belowLayout.height + strokeHalf
-        } else {
-            arrowRelY + arrowStrokeHeight + strokeHalf
-        }
-
-        val baseline = arrowRelY + arrowStrokeHeight / 2
+        val vertical = calculateKaTeXExtensibleArrowVerticalPlacement(
+            aboveHeight = aboveLayout.height,
+            belowHeight = belowLayout?.height,
+            arrowTopExtent = arrowTopExtent,
+            arrowBottomExtent = arrowBottomExtent,
+            labelGap = labelGap,
+            axisHeight = axisHeight,
+            outerPadding = strokeHalf
+        )
+        val aboveRelY = vertical.aboveY
+        val arrowCenterRelY = vertical.arrowCenterY
+        val belowRelY = vertical.belowY
 
         // 相对 X 坐标
         val aboveRelX = (totalWidth - aboveLayout.width) / 2
@@ -97,7 +106,6 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         // 箭头的相对坐标 (以 (0,0) 为原点构建)
         val arrowStartRelX = padding
         val arrowEndRelX = totalWidth - padding
-        val arrowCenterRelY = arrowRelY + arrowStrokeHeight / 2
         val color = context.color
 
         // 预构建箭头头部 Path (以 (0,0) 为原点)
@@ -108,7 +116,7 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
                 node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE
 
-        return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+        return NodeLayout(totalWidth, vertical.totalHeight, vertical.baseline) { x, y ->
             // 绘制上方文字
             aboveLayout.draw(this, x + aboveRelX, y + aboveRelY)
 
@@ -311,4 +319,43 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
 
         return ArrowPaths(filledPaths, strokePaths)
     }
+}
+
+internal data class ExtensibleArrowVerticalPlacement(
+    val totalHeight: Float,
+    val baseline: Float,
+    val aboveY: Float,
+    val arrowCenterY: Float,
+    val belowY: Float
+)
+
+/** KaTeX xArrow placement: the arrow center sits on the mathematical axis. */
+internal fun calculateKaTeXExtensibleArrowVerticalPlacement(
+    aboveHeight: Float,
+    belowHeight: Float?,
+    arrowTopExtent: Float,
+    arrowBottomExtent: Float,
+    labelGap: Float,
+    axisHeight: Float,
+    outerPadding: Float
+): ExtensibleArrowVerticalPlacement {
+    val aboveY = outerPadding
+    val arrowCenterY = aboveY + aboveHeight + labelGap + arrowTopExtent
+    val arrowBottomY = arrowCenterY + arrowBottomExtent
+    val belowY = arrowBottomY + labelGap
+    val totalHeight = if (belowHeight != null) {
+        belowY + belowHeight + outerPadding
+    } else {
+        arrowBottomY + outerPadding
+    }
+
+    // KaTeX arrowShift = -axisHeight + 0.5 * arrowBody.height.
+    // In top-down coordinates this means baseline = arrowCenter + axisHeight.
+    return ExtensibleArrowVerticalPlacement(
+        totalHeight = totalHeight,
+        baseline = arrowCenterY + axisHeight,
+        aboveY = aboveY,
+        arrowCenterY = arrowCenterY,
+        belowY = belowY
+    )
 }

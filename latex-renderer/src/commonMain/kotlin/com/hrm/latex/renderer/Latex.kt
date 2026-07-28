@@ -46,7 +46,6 @@ import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
 import com.hrm.latex.renderer.font.MathFontProviderFactory
-import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.layout.LayoutCache
 import com.hrm.latex.renderer.layout.LayoutMap
@@ -88,26 +87,17 @@ fun Latex(
 ) {
     val resolvedThemeColors = config.resolveThemeColors(isDarkTheme)
 
-    // ── OTF 字体异步加载（FontResource 方式）──
-    // 当用户通过 MathFont.OTF(fontResource) 配置时，bytes 在此处异步加载。
-    // 加载前 effectiveMathFont 为 Default（TTF 降级渲染），加载后升级为完整 OTF。
-    val effectiveMathFont = rememberResolvedMathFont(config.mathFont)
-
-    val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
+    val fontFamilies = defaultLatexFontFamilies()
 
     // 缓存 MathFontProvider 实例：Provider 不是 data class，每次创建新实例会导致
     // RenderContext 的 equals 失效，进而使下游 remember(context) 永远 miss。
-    // 通过 remember 保证 effectiveMathFont + fontFamilies 不变时复用同一 Provider 引用。
-    val provider = remember(effectiveMathFont, fontFamilies) {
-        MathFontProviderFactory.create(
-            mathFont = effectiveMathFont,
-            defaultFontFamilies = fontFamilies
-        )
+    val provider = remember(fontFamilies) {
+        MathFontProviderFactory.create(fontFamilies)
     }
 
     // 构建渲染上下文（fontFamilies 由全局单例管理，bytes 异步加载完成后自动触发重组）
     val context = remember(config, isDarkTheme, fontFamilies, provider) {
-        config.copy(mathFont = effectiveMathFont).toContext(isDarkTheme, fontFamilies, provider)
+        config.toContext(isDarkTheme, fontFamilies, provider)
     }
 
     // 复用解析器实例以支持真正的增量解析

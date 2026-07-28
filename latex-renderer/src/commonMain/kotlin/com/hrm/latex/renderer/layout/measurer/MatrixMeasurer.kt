@@ -141,49 +141,57 @@ internal class MatrixMeasurer : NodeMeasurer {
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
-        // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding =
-            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
-        val delimiterHeight = contentLayout.height + delimiterPadding * 2
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
+        val delimiterHeight = delimiterTargetHeight(contentLayout, context, density, axisHeight)
 
         // 使用字体渲染括号（而不是 Path）
         val leftChar = getDelimiterChar(bracketType, isLeft = true)
         val rightChar = getDelimiterChar(bracketType, isLeft = false)
 
         val leftLayout = if (leftChar.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight, density)
+            centerOnAxis(
+                DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight, density),
+                axisHeight
+            )
         } else null
 
         val rightLayout = if (rightChar.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(rightChar, context, measurer, delimiterHeight, density)
+            centerOnAxis(
+                DelimiterRenderer.measureScaled(rightChar, context, measurer, delimiterHeight, density),
+                axisHeight
+            )
         } else null
 
         val leftW = leftLayout?.width ?: 0f
         val rightW = rightLayout?.width ?: 0f
 
         val width = leftW + contentLayout.width + rightW
-        val height = delimiterHeight
-        val baseline = contentLayout.baseline + delimiterPadding
+        val baseline = maxOf(
+            contentLayout.baseline,
+            leftLayout?.baseline ?: 0f,
+            rightLayout?.baseline ?: 0f
+        )
+        val descent = maxOf(
+            contentLayout.height - contentLayout.baseline,
+            leftLayout?.let { it.height - it.baseline } ?: 0f,
+            rightLayout?.let { it.height - it.baseline } ?: 0f
+        )
+        val height = baseline + descent
 
         return NodeLayout(width, height, baseline) { x, y ->
             var curX = x
 
-            // 内容在括号内垂直居中
-            val contentY = y + (delimiterHeight - contentLayout.height) / 2f
-
-            // 绘制左侧括号
             if (leftLayout != null) {
-                leftLayout.draw(this, curX, y)
+                leftLayout.draw(this, curX, y + baseline - leftLayout.baseline)
                 curX += leftLayout.width
             }
 
-            // 绘制内容:垂直居中
-            contentLayout.draw(this, curX, contentY)
+            contentLayout.draw(this, curX, y + baseline - contentLayout.baseline)
             curX += contentLayout.width
 
             // 绘制右侧括号
             if (rightLayout != null) {
-                rightLayout.draw(this, curX, y)
+                rightLayout.draw(this, curX, y + baseline - rightLayout.baseline)
             }
         }
     }
@@ -280,36 +288,56 @@ internal class MatrixMeasurer : NodeMeasurer {
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
         )
 
-        // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding =
-            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
-        val delimiterHeight = matrixLayout.height + delimiterPadding * 2
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
+        val delimiterHeight = delimiterTargetHeight(matrixLayout, context, density, axisHeight)
 
         // rcases 使用右花括号，其他使用左花括号
         val isRight = node.style == LatexNode.Cases.CasesStyle.RIGHT
         val braceChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = !isRight)
-        val braceLayout =
-            DelimiterRenderer.measureScaled(braceChar, context, measurer, delimiterHeight, density)
+        val braceLayout = centerOnAxis(
+            DelimiterRenderer.measureScaled(braceChar, context, measurer, delimiterHeight, density),
+            axisHeight
+        )
 
         val width = braceLayout.width + matrixLayout.width
-        val height = delimiterHeight
-        val baseline = matrixLayout.baseline + delimiterPadding
+        val baseline = max(matrixLayout.baseline, braceLayout.baseline)
+        val descent = max(
+            matrixLayout.height - matrixLayout.baseline,
+            braceLayout.height - braceLayout.baseline
+        )
+        val height = baseline + descent
 
         return NodeLayout(width, height, baseline) { x, y ->
-            // 内容在括号内垂直居中
-            val contentY = y + (delimiterHeight - matrixLayout.height) / 2f
-
             if (isRight) {
-                // rcases: 内容在左，右花括号在右
-                matrixLayout.draw(this, x, contentY)
-                braceLayout.draw(this, x + matrixLayout.width, y)
+                matrixLayout.draw(this, x, y + baseline - matrixLayout.baseline)
+                braceLayout.draw(this, x + matrixLayout.width, y + baseline - braceLayout.baseline)
             } else {
-                // cases / dcases: 左花括号在左，内容在右
-                braceLayout.draw(this, x, y)
-                matrixLayout.draw(this, x + braceLayout.width, contentY)
+                braceLayout.draw(this, x, y + baseline - braceLayout.baseline)
+                matrixLayout.draw(this, x + braceLayout.width, y + baseline - matrixLayout.baseline)
             }
         }
     }
+
+    private fun delimiterTargetHeight(
+        content: NodeLayout,
+        context: RenderContext,
+        density: Density,
+        axisHeight: Float
+    ): Float {
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val maxDistance = max(
+            content.baseline - axisHeight,
+            content.height - content.baseline + axisHeight
+        )
+        return max(2f * maxDistance * 0.901f, 2f * maxDistance - fontSizePx * 0.5f)
+    }
+
+    private fun centerOnAxis(layout: NodeLayout, axisHeight: Float): NodeLayout = NodeLayout(
+        layout.width,
+        layout.height,
+        layout.height / 2f + axisHeight,
+        draw = layout.draw
+    )
 
     /**
      * 解析 tabular/array 对齐字符串

@@ -28,9 +28,20 @@ import com.hrm.latex.parser.model.LatexNode
  * 大型运算符命令：\sum, \prod, \int, \lim 等
  */
 internal fun CommandRegistry.installBigOperatorHandlers() {
+    val displayLimitOperators = setOf(
+        "sum", "prod", "bigcup", "bigcap", "bigvee", "bigwedge",
+        "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",
+        "lim", "max", "min", "sup", "inf", "limsup", "liminf", "det", "gcd"
+    )
     val bigOpHandler = CommandHandler { cmdName, ctx, stream ->
         val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
-        LatexNode.BigOperator(cmdName, sub, sup, limitsMode)
+        LatexNode.BigOperator(
+            operator = cmdName,
+            subscript = sub,
+            superscript = sup,
+            limitsMode = limitsMode,
+            limitsInDisplay = cmdName in displayLimitOperators
+        )
     }
 
     register(

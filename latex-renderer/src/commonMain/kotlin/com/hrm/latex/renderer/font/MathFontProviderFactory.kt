@@ -22,64 +22,10 @@
 
 package com.hrm.latex.renderer.font
 
-import com.hrm.latex.base.log.HLog
 import com.hrm.latex.renderer.model.LatexFontFamilies
 
-/**
- * MathFontProvider 工厂。
- *
- * 根据 [MathFont] 配置创建对应的 [MathFontProvider] 实例。
- */
+/** Creates the single supported KaTeX TTF metrics/font provider. */
 internal object MathFontProviderFactory {
-    private const val TAG = "MathFontProviderFactory"
-
-    /**
-     * 根据 MathFont 配置创建 Provider。
-     *
-     * @param mathFont 用户配置的数学字体
-     * @param defaultFontFamilies 内置 KaTeX 字体家族（用于 Default 和 fallback）
-     * @return MathFontProvider 实例
-     */
-    fun create(
-        mathFont: MathFont,
-        defaultFontFamilies: LatexFontFamilies
-    ): MathFontProvider {
-        HLog.i(TAG, "create: mathFont=${mathFont::class.simpleName}")
-        return when (mathFont) {
-            is MathFont.Default -> {
-                // Default 的 OTF 尚未加载完成时，走 TTF 降级
-                TtfFontSetProvider(defaultFontFamilies)
-            }
-
-            is MathFont.KaTeXTTF -> {
-                TtfFontSetProvider(defaultFontFamilies)
-            }
-
-            is MathFont.OTF -> {
-                val otfFontBytes = defaultFontFamilies.mainBytes
-                val otfFontFamily = mathFont.fontFamily
-                if (otfFontBytes != null && otfFontFamily != null) {
-                    try {
-                        val provider = OtfMathFontProvider(otfFontBytes, otfFontFamily)
-                        HLog.i(TAG, "OtfMathFontProvider created successfully, " +
-                                "bytesSize=${otfFontBytes.size}")
-                        provider
-                    } catch (e: Exception) {
-                        HLog.e(TAG, "OtfMathFontProvider creation failed, " +
-                                "fallback to TtfFontSetProvider", e)
-                        TtfFontSetProvider(defaultFontFamilies)
-                    }
-                } else {
-                    // OTF 字节未提供（不应发生，MathFont.OTF 构造时必须传入 fontBytes）
-                    HLog.w(TAG, "OTF bytes not available in fontFamilies, " +
-                            "using TtfFontSetProvider as fallback")
-                    TtfFontSetProvider(defaultFontFamilies)
-                }
-            }
-
-            is MathFont.TTF -> {
-                TtfFontSetProvider(mathFont.fontFamilies)
-            }
-        }
-    }
+    fun create(fontFamilies: LatexFontFamilies): MathFontProvider =
+        TtfFontSetProvider(fontFamilies)
 }
