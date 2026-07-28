@@ -16,7 +16,7 @@
 - **多平台一致性**：使用 Compose Multiplatform 在 Android、iOS、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致渲染。
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
 - **光栅与矢量导出**：支持 PNG/JPEG/WEBP 图片和与分辨率无关的 SVG 矢量输出。
-- **预测量 API**：同步预测量公式精确渲染尺寸（width/height/baseline），支持 Compose `InlineTextContent` 行内数学公式嵌入。
+- **行内公式 API**：通过 `LatexMeasurerState.inlineContent()` 直接生成 Compose `InlineTextContent`，同时保留精确尺寸预测量能力。
 - **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式自然语言描述。
 - **LaTeX → MathML**：将 LaTeX AST 转换为 Presentation MathML 输出。
 - **公式高亮**：通过 `HighlightConfig` 高亮子表达式。
@@ -387,22 +387,27 @@ Latex(
 
 `AccessibilityVisitor` 会将 LaTeX AST 转换为描述性文本，覆盖分数、根号、上下标、矩阵、希腊字母、运算符等结构。
 
-### 预测量 API（行内数学公式支持）
+### 行内数学公式支持
 
-预测量公式渲染尺寸，用于通过 `InlineTextContent` 嵌入行内数学公式：
+`inlineContent()` 封装了公式预测量、`Placeholder` 尺寸和公式渲染，可直接与 Compose `Text` 配合：
 
 ```kotlin
 val measurer = rememberLatexMeasurer(config)
-val dims = measurer.measure("\\frac{a}{b}", config) ?: return
+val formula = measurer.inlineContent("\\frac{a}{b}", config)
 
-val placeholder = Placeholder(
-    width = with(density) { dims.widthPx.toSp() },
-    height = with(density) { dims.heightPx.toSp() },
-    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+Text(
+    text = buildAnnotatedString {
+        append("分数 ")
+        appendInlineContent("formula", "a 除以 b")
+        append(" 表示 a 除以 b。")
+    },
+    inlineContent = formula?.let { mapOf("formula" to it) }.orEmpty()
 )
 ```
 
-`LatexDimensions` 提供 `widthPx`、`heightPx`、`baselinePx`（含内边距）及对应的纯内容尺寸字段。批量测量可使用 `measureBatch()`。
+空输入或测量失败时 `inlineContent()` 返回 `null`，此时 Compose 会显示 `appendInlineContent()` 提供的替代文本。相同公式和配置会复用 `LatexMeasurerState` 内部缓存。
+
+需要自定义布局时仍可使用 `measure()`：`LatexDimensions` 提供 `widthPx`、`heightPx`、`baselinePx`（含内边距）及对应的纯内容尺寸字段。批量测量可使用 `measureBatch()`。
 
 ### 所见即所得编辑器（实验性）
 

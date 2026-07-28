@@ -22,9 +22,12 @@
 
 package com.hrm.latex.renderer.measure
 
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
@@ -38,6 +41,7 @@ import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
 
 private const val TAG = "LatexMeasurer"
+private const val MAX_CACHE_SIZE = 128
 
 /**
  * LaTeX 公式的预测量尺寸结果。
@@ -79,16 +83,13 @@ data class LatexDimensions(
  * 使用示例：
  * ```kotlin
  * val measurer = rememberLatexMeasurer()
- * val density = LocalDensity.current
- *
- * val dims = measurer.measure("\\frac{a}{b}") ?: return
- * val widthSp = with(density) { dims.widthPx.toSp() }
- * val heightSp = with(density) { dims.heightPx.toSp() }
- *
- * val placeholder = Placeholder(
- *     width = widthSp,
- *     height = heightSp,
- *     placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+ * val formula = measurer.inlineContent("\\frac{a}{b}")
+ * Text(
+ *     text = buildAnnotatedString {
+ *         append("fraction: ")
+ *         appendInlineContent("formula", "a divided by b")
+ *     },
+ *     inlineContent = formula?.let { mapOf("formula" to it) }.orEmpty()
  * )
  * ```
  */
@@ -98,6 +99,8 @@ class LatexMeasurerState internal constructor(
     private val fontFamilies: LatexFontFamilies
 ) {
     private val parser = IncrementalLatexParser()
+    private val dimensionsCache = linkedMapOf<MeasureCacheKey, LatexDimensions?>()
+    private val inlineContentCache = linkedMapOf<InlineContentCacheKey, InlineTextContent?>()
 
     /**
      * 同步测量 LaTeX 字符串的精确渲染尺寸。
@@ -119,7 +122,12 @@ class LatexMeasurerState internal constructor(
     ): LatexDimensions? {
         if (latex.isBlank()) return null
 
-        return try {
+        val cacheKey = MeasureCacheKey(latex, config, isDarkTheme)
+        if (dimensionsCache.containsKey(cacheKey)) {
+            return dimensionsCache[cacheKey]
+        }
+
+        val dimensions = try {
             val document = parseLatex(latex)
             if (document.children.isEmpty()) return null
 
@@ -143,6 +151,45 @@ class LatexMeasurerState internal constructor(
             HLog.e(TAG, "测量失败", e)
             null
         }
+
+        dimensionsCache.putBounded(cacheKey, dimensions)
+        return dimensions
+    }
+
+    /**
+     * 创建可直接传给 Compose `Text` / `BasicText` 的行内公式内容。
+     *
+     * 该方法封装公式预测量、[Placeholder] 构造和 [Latex][com.hrm.latex.renderer.Latex]
+     * 渲染。占位尺寸与 `Latex` 的完整画布尺寸保持一致，避免内容被裁剪；公式默认相对
+     * 前置文本垂直居中。相同公式与配置会在当前 [LatexMeasurerState] 中复用缓存。
+     *
+     * 调用方仍使用 Compose 标准的
+     * [appendInlineContent][androidx.compose.foundation.text.appendInlineContent] 声明公式位置，
+     * 并将返回值放入 `Text` 的 `inlineContent` map。
+     *
+     * @param latex LaTeX 字符串
+     * @param config 渲染配置（字号、主题、字体等）
+     * @return 可直接嵌入富文本的 [InlineTextContent]；空输入或测量失败时返回 null
+     */
+    fun inlineContent(
+        latex: String,
+        config: LatexConfig = LatexConfig()
+    ): InlineTextContent? {
+        if (latex.isBlank()) return null
+
+        val cacheKey = InlineContentCacheKey(latex, config)
+        if (inlineContentCache.containsKey(cacheKey)) {
+            return inlineContentCache[cacheKey]
+        }
+
+        val dimensions = measure(latex, config)
+        val inlineContent = dimensions?.toInlineTextContent(
+            density = density,
+            latex = latex,
+            config = config
+        )
+        inlineContentCache.putBounded(cacheKey, inlineContent)
+        return inlineContent
     }
 
     /**
@@ -174,6 +221,41 @@ class LatexMeasurerState internal constructor(
             LatexNode.Document(emptyList())
         }
     }
+
+    private data class MeasureCacheKey(
+        val latex: String,
+        val config: LatexConfig,
+        val isDarkTheme: Boolean
+    )
+
+    private data class InlineContentCacheKey(
+        val latex: String,
+        val config: LatexConfig
+    )
+}
+
+internal fun LatexDimensions.toInlineTextContent(
+    density: Density,
+    latex: String,
+    config: LatexConfig
+): InlineTextContent = InlineTextContent(
+    placeholder = Placeholder(
+        width = with(density) { widthPx.toSp() },
+        height = with(density) { heightPx.toSp() },
+        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+    )
+) {
+    com.hrm.latex.renderer.Latex(
+        latex = latex,
+        config = config
+    )
+}
+
+private fun <K, V> MutableMap<K, V>.putBounded(key: K, value: V) {
+    if (size >= MAX_CACHE_SIZE && !containsKey(key)) {
+        remove(keys.first())
+    }
+    this[key] = value
 }
 
 /**

@@ -16,7 +16,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, Desktop (JVM), and Web (Wasm/JS).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 - **Raster & Vector Export**: Export formulas as PNG/JPEG/WEBP images or resolution-independent SVG vectors.
-- **Pre-measurement API**: Synchronous pre-measurement of formula dimensions (width/height/baseline) for Compose `InlineTextContent` inline math embedding.
+- **Inline Math API**: Create Compose `InlineTextContent` directly with `LatexMeasurerState.inlineContent()`, while retaining precise pre-measurement support.
 - **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions (MathSpeak).
 - **LaTeX → MathML**: Convert LaTeX AST to Presentation MathML output.
 - **Formula Highlight**: Highlight sub-expressions within formulas via `HighlightConfig`.
@@ -389,22 +389,27 @@ Latex(
 
 The `AccessibilityVisitor` converts the LaTeX AST into descriptive text covering fractions, roots, superscripts/subscripts, matrices, Greek letters, operators, and more.
 
-### Pre-measurement API (Inline Math Support)
+### Inline Math Support
 
-Pre-measure formula dimensions for embedding inline math via `InlineTextContent`:
+`inlineContent()` encapsulates formula pre-measurement, `Placeholder` sizing, and rendering for direct use with Compose `Text`:
 
 ```kotlin
 val measurer = rememberLatexMeasurer(config)
-val dims = measurer.measure("\\frac{a}{b}", config) ?: return
+val formula = measurer.inlineContent("\\frac{a}{b}", config)
 
-val placeholder = Placeholder(
-    width = with(density) { dims.widthPx.toSp() },
-    height = with(density) { dims.heightPx.toSp() },
-    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+Text(
+    text = buildAnnotatedString {
+        append("The fraction ")
+        appendInlineContent("formula", "a divided by b")
+        append(" represents a divided by b.")
+    },
+    inlineContent = formula?.let { mapOf("formula" to it) }.orEmpty()
 )
 ```
 
-`LatexDimensions` provides `widthPx`, `heightPx`, `baselinePx` (with padding) and their content-only counterparts. Use `measureBatch()` for multiple formulas.
+For blank input or measurement failure, `inlineContent()` returns `null`, allowing Compose to display the alternate text supplied to `appendInlineContent()`. Repeated calls with the same formula and configuration reuse the `LatexMeasurerState` cache.
+
+For custom layouts, the lower-level `measure()` API remains available. `LatexDimensions` provides `widthPx`, `heightPx`, and `baselinePx` (including padding), plus corresponding content-only fields. Use `measureBatch()` for batch measurement.
 
 ### WYSIWYG Editor (Experimental)
 

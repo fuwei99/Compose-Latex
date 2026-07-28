@@ -7,6 +7,7 @@
 - ✅ 实时预览 LaTeX 渲染效果
 - ✅ 支持 `LatexTheme.auto()` / `light()` / `dark()` / `material3()` 四种主题写法
 - ✅ 提供常用示例快速测试
+- ✅ 提供 `inlineContent()` 单公式及多公式 Compose 富文本混排示例
 - ✅ 提供 PNG/JPEG/WEBP 光栅与 SVG PATH/TEXT 矢量导出预览
 - ✅ 不参与 SDK 最终打包
 

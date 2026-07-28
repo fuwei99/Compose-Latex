@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -36,9 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -205,8 +201,7 @@ fun InlineMathCard(
         theme = LatexTheme.material3()
     )
     val measurer = rememberLatexMeasurer(config)
-    val density = LocalDensity.current
-
+    val formulaContent = measurer.inlineContent(formula, config)
     val dims = measurer.measure(formula, config)
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -216,22 +211,7 @@ fun InlineMathCard(
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
 
-            if (dims != null) {
-                val widthSp = with(density) { dims.widthPx.toSp() }
-                val heightSp = with(density) { dims.heightPx.toSp() }
-
-                val inlineContent = mapOf(
-                    "formula" to InlineTextContent(
-                        placeholder = Placeholder(
-                            width = widthSp,
-                            height = heightSp,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                        )
-                    ) {
-                        Latex(latex = formula, config = config)
-                    }
-                )
-
+            if (formulaContent != null) {
                 val annotated = buildAnnotatedString {
                     append(textBefore)
                     appendInlineContent("formula", formula)
@@ -240,7 +220,7 @@ fun InlineMathCard(
 
                 Text(
                     text = annotated,
-                    inlineContent = inlineContent,
+                    inlineContent = mapOf("formula" to formulaContent),
                     style = MaterialTheme.typography.bodyLarge
                 )
             } else {
@@ -279,12 +259,6 @@ fun MultiInlineMathCard(
         theme = LatexTheme.material3()
     )
     val measurer = rememberLatexMeasurer(config)
-    val density = LocalDensity.current
-
-    val mathSegments = segments.filterIsInstance<TextSegment.Math>()
-    val dimensions = measurer.measureBatch(
-        mathSegments.map { it.latex }, config
-    )
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -293,30 +267,16 @@ fun MultiInlineMathCard(
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
 
-            val dimMap = mutableMapOf<String, Int>()
-            val inlineContent = mutableMapOf<String, InlineTextContent>()
-
-            var mathIndex = 0
-            for (segment in segments) {
-                if (segment is TextSegment.Math) {
-                    val dims = dimensions[mathIndex]
-                    val id = "math_$mathIndex"
-                    if (dims != null) {
-                        val widthSp = with(density) { dims.widthPx.toSp() }
-                        val heightSp = with(density) { dims.heightPx.toSp() }
-                        val latex = segment.latex
-                        inlineContent[id] = InlineTextContent(
-                            placeholder = Placeholder(
-                                width = widthSp,
-                                height = heightSp,
-                                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                            )
-                        ) {
-                            Latex(latex = latex, config = config)
+            val inlineContent = buildMap {
+                var mathIndex = 0
+                for (segment in segments) {
+                    if (segment is TextSegment.Math) {
+                        val id = "math_$mathIndex"
+                        measurer.inlineContent(segment.latex, config)?.let { content ->
+                            put(id, content)
                         }
+                        mathIndex++
                     }
-                    dimMap[segment.latex] = mathIndex
-                    mathIndex++
                 }
             }
 
