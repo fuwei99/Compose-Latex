@@ -400,8 +400,8 @@ This library publishes two variants for each release to support different Kotlin
 
 | Variant | Kotlin | Compose Multiplatform | Artifact Version |
 |---------|--------|-----------------------|------------------|
-| **Standard** | 2.3.10 | 1.10.3 | `1.4.8` |
-| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.4.8-kt2.1.0` |
+| **Standard** | 2.3.10 | 1.10.3 | `1.5.0`          |
+| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.5.0-kt2.1.0`  |
 
 > Choose the variant that matches your project's Kotlin version. If your project uses **Kotlin 2.1.0**, use the `-kt2.1.0` suffixed version.
 
@@ -411,7 +411,7 @@ Add dependencies in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "1.4.8"
+latex = "1.5.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -425,7 +425,7 @@ If your project uses Kotlin 2.1.0, use the `-kt2.1.0` suffixed artifacts:
 
 ```toml
 [versions]
-latex = "1.4.8-kt2.1.0"
+latex = "1.5.0-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }

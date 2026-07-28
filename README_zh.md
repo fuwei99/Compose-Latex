@@ -399,8 +399,8 @@ fun MyEditor() {
 
 | 变体 | Kotlin | Compose Multiplatform | 制品版本号 |
 |------|--------|-----------------------|-----------|
-| **标准版** | 2.3.10 | 1.10.3 | `1.4.8` |
-| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.4.8-kt2.1.0` |
+| **标准版** | 2.3.10 | 1.10.3 | `1.5.0` |
+| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.5.0-kt2.1.0` |
 
 > 请选择与你项目 Kotlin 版本匹配的变体。如果你的项目使用 **Kotlin 2.1.0**，请使用带 `-kt2.1.0` 后缀的版本。
 
@@ -410,7 +410,7 @@ fun MyEditor() {
 
 ```toml
 [versions]
-latex = "1.4.8"
+latex = "1.5.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -424,7 +424,7 @@ latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref 
 
 ```toml
 [versions]
-latex = "1.4.8-kt2.1.0"
+latex = "1.5.0-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
