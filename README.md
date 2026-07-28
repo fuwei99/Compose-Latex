@@ -1,7 +1,7 @@
 # Kotlin Multiplatform LaTeX Rendering Library
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.0-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-blue.svg)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
@@ -25,7 +25,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Structured Diagnostics**: `parseWithDiagnostics()` provides 8-category structured diagnostics with severity filtering.
 - **RTL Support**: Complete right-to-left text direction support (`\RLE`, `\LRE`, RTL/LTR environments, nesting).
 
-## 📐 Supported LaTeX Features (378+)
+## 📐 Supported LaTeX Features (381+)
 
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials, scripts</summary>
@@ -400,18 +400,18 @@ This library publishes two variants for each release to support different Kotlin
 
 | Variant | Kotlin | Compose Multiplatform | Artifact Version |
 |---------|--------|-----------------------|------------------|
-| **Standard** | 2.3.0+ | 1.10.0+ | `1.3.0` |
-| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.3.0-kt2.1.0` |
+| **Standard** | 2.3.10 | 1.10.3 | `1.4.8` |
+| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.4.8-kt2.1.0` |
 
 > Choose the variant that matches your project's Kotlin version. If your project uses **Kotlin 2.1.0**, use the `-kt2.1.0` suffixed version.
 
-### Standard Version (Kotlin 2.3.0+)
+### Standard Version (Kotlin 2.3.10)
 
 Add dependencies in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "1.3.0"
+latex = "1.4.8"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -425,7 +425,7 @@ If your project uses Kotlin 2.1.0, use the `-kt2.1.0` suffixed artifacts:
 
 ```toml
 [versions]
-latex = "1.3.0-kt2.1.0"
+latex = "1.4.8-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -475,7 +475,7 @@ For a detailed list of supported features, please refer to: [PARSER_COVERAGE_ANA
 
 ## 🙏 Acknowledgements
 
-- [KaTeX](https://github.com/KaTeX/KaTeX) — This project uses font files from KaTeX for mathematical formula rendering. KaTeX is licensed under the [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE).
+- [KaTeX](https://github.com/KaTeX/KaTeX) — This project uses the KaTeX v0.16.11 font files for mathematical formula rendering. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for attribution and license details.
 
 ## 💡 Recommended
 

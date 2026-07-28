@@ -1,7 +1,7 @@
 # Kotlin Multiplatform LaTeX Rendering Library
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.0-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-blue.svg)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
@@ -25,7 +25,7 @@
 - **结构化诊断**：`parseWithDiagnostics()` 提供 8 种分类的结构化诊断信息，按严重级别过滤。
 - **RTL 支持**：完整的从右到左文本方向支持（`\RLE`、`\LRE`、RTL/LTR 环境，支持嵌套）。
 
-## 📐 已支持的 LaTeX 功能（378+）
+## 📐 已支持的 LaTeX 功能（381+）
 
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式、上下标</summary>
@@ -399,18 +399,18 @@ fun MyEditor() {
 
 | 变体 | Kotlin | Compose Multiplatform | 制品版本号 |
 |------|--------|-----------------------|-----------|
-| **标准版** | 2.3.0+ | 1.10.0+ | `1.3.0` |
-| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.3.0-kt2.1.0` |
+| **标准版** | 2.3.10 | 1.10.3 | `1.4.8` |
+| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.4.8-kt2.1.0` |
 
 > 请选择与你项目 Kotlin 版本匹配的变体。如果你的项目使用 **Kotlin 2.1.0**，请使用带 `-kt2.1.0` 后缀的版本。
 
-### 标准版（Kotlin 2.3.0+）
+### 标准版（Kotlin 2.3.10）
 
 在 `gradle/libs.versions.toml` 中添加依赖：
 
 ```toml
 [versions]
-latex = "1.3.0"
+latex = "1.4.8"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -424,7 +424,7 @@ latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref 
 
 ```toml
 [versions]
-latex = "1.3.0-kt2.1.0"
+latex = "1.4.8-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -474,7 +474,7 @@ dependencies {
 
 ## 🙏 致谢
 
-- [KaTeX](https://github.com/KaTeX/KaTeX) — 本项目使用了 KaTeX 的字体文件用于数学公式渲染。KaTeX 基于 [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE) 开源。
+- [KaTeX](https://github.com/KaTeX/KaTeX) — 本项目使用 KaTeX v0.16.11 字体文件进行数学公式渲染；来源、署名和许可证详情见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
 
 ## 💡 推荐项目
 

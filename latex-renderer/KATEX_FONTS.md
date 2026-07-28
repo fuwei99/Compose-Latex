@@ -2,7 +2,7 @@
 
 > 字体来源：[KaTeX v0.16.11](https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/fonts/)
 
-所有字体文件存放于 `latex-render/commonMain/composeResources/font` 目录下。
+所有字体文件存放于 `latex-renderer/src/commonMain/composeResources/font` 目录下。字体来源、署名与许可证详见项目根目录的 [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。
 
 ---
 
