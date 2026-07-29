@@ -28,6 +28,9 @@
 - ✅ `\cfrac` 连分数
 - ✅ `\binom{n}{k}` 二项式系数
 - ✅ `\tbinom`, `\dbinom` 二项式系数样式变体
+- ✅ `\genfrac{左}{右}{线宽}{样式}{分子}{分母}` 广义分数
+- ✅ `\over`, `\atop`, `\choose`, `\above` TeX 中缀分数
+- ✅ `\splitfrac`, `\splitdfrac` mathtools 分行分数
 
 #### 根号
 - ✅ `\sqrt{x}` 平方根
@@ -53,6 +56,7 @@
 #### 运算符
 - ✅ 基础: +, -, ×, ÷, ±, ∓, ⋅, ∗, ⊕, ⊗, ⊖, ⊘, ⊙
 - ✅ 关系: =, ≠, <, >, ≤, ≥, ≈, ≡, ∼, ≃, ≅, ≪, ≫
+- ✅ mathtools 定义关系: `\coloneqq`, `\eqqcolon`, `\dblcolon`
 - ✅ 集合: ∈, ∉, ⊂, ⊃, ⊆, ⊇, ∪, ∩, ∅, ℕ, ℤ, ℚ, ℝ, ℂ
 - ✅ 逻辑: ∧, ∨, ¬, ⇒, ⇔, ∀, ∃
 - ✅ 箭头: →, ←, ↔, ⇒, ⇐, ⇔, ↑, ↓, ↕, ↗, ↖, ↪, ↩
@@ -157,6 +161,8 @@
 - ✅ `Vmatrix` 双竖线矩阵 ||||
 - ✅ `smallmatrix` 小矩阵（用于行内公式）
 - ✅ `array` 数组环境（更通用的表格）
+- ✅ `matrix*`, `pmatrix*`, `bmatrix*`, `Bmatrix*`, `vmatrix*`, `Vmatrix*` 及 `[l|c|r]` 对齐
+- ✅ `smallmatrix*`, `subarray` 紧凑矩阵环境
 
 ### ❌ 缺失
 - 无
@@ -194,6 +200,7 @@
 - ✅ `\bigl`, `\bigr`, `\bigm` 方向后缀支持
 - ✅ `\big\lvert`, `\big\rvert`, `\big\lVert`, `\big\rVert` 竖线变体手动大小
 - ✅ 支持所有括号类型：`()`, `[]`, `\{\}`, `||`, `⟨⟩`, `⌊⌋`, `⌈⌉`
+- ✅ `\middle` 左右定界符之间的中间分隔符
 
 ### ❌ 缺失
 - 无
@@ -244,6 +251,8 @@
 - ✅ `\overbrace{a+b}^{text}` 上大括号带上方标注文本
 - ✅ `\overbracket{x+y}` 上方括号标注
 - ✅ `\underbracket{a+b}` 下方括号标注
+- ✅ `\widecheck`, `\overparen`, `\underparen` 宽重音与圆括弧装饰
+- ✅ `\overleftrightarrow`, `\underleftarrow`, `\underrightarrow` 箭头装饰
 
 ### ❌ 缺失
 - 无
@@ -272,6 +281,7 @@
 - ✅ `\symit{x}` Unicode 数学斜体
 - ✅ `\symsf{x}` Unicode 数学无衬线体
 - ✅ `\symrm{x}` Unicode 数学罗马体
+- ✅ `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 文本样式命令
 - ✅ `\tiny` / `\scriptsize` / `\footnotesize` / `\small` / `\normalsize`
 - ✅ `\large` / `\Large` / `\LARGE` / `\huge` / `\Huge`
 
@@ -333,6 +343,8 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\negthinspace`, `\negmedspace`, `\negthickspace` 负空格
 - ✅ `\>` 中等空格别名
 - ✅ `\hspace{1cm}` 自定义空格
+- ✅ `\kern`, `\mkern` TeX 尺寸空格（含 `mu` 单位）
+- ✅ `\allowbreak` 可断行提示
 - ✅ `\{`, `\}`, `\$`, `\%`, `\#`, `\&`, `\_` 转义特殊字符；`\|` 双竖线（同 `\Vert`）
     
 ### ❌ 缺失
@@ -370,12 +382,20 @@ x^{\sum_{i=1}^{n}}
 #### 其他对齐环境
 - ✅ `flalign`, `flalign*` 全宽对齐环境
 - ✅ `alignat`, `alignat*` 指定列数对齐环境
+- ✅ `alignedat` 内嵌指定列数对齐环境
+- ✅ `subarray` 紧凑数组环境
+- ✅ 矩阵星号变体及 `[l|c|r]` 列对齐
+- ✅ `cases*`, `dcases*`, `rcases*` 星号变体
+- ✅ `\cr`, `\notag`, `\nonumber`, `\intertext`, `\shortintertext` 行控制命令
 
 #### 公式自动编号
 - ✅ 自动编号计数器（equation/align/gather/multline/eqnarray 非星号变体自增）
 - ✅ `\ref`/`\eqref` 渲染为实际编号
 - ✅ 有 `\tag` 时跳过自动编号
 - ✅ 星号环境（`equation*` 等）不参与编号
+
+### 🛣 后续规划
+- `enumerate` / `itemize` 基础列表环境
 
 ### ❌ 缺失
 - 无
@@ -421,6 +441,9 @@ x^{\sum_{i=1}^{n}}
 - ✅ 系数解析（如 `\ce{2H2 + O2 -> 2H2O}`）
 - ✅ 上标和下标混合（如 `\ce{^{235}_{92}U}`）
 - ✅ 复杂配合物（如 `\ce{[Cu(NH3)4]^{2+}}`）
+- ✅ 反应箭头 `[上方][下方]` 条件与催化剂标注
+- ✅ 单键、双键、三键、芳香键以及 `\bond{...}`
+- ✅ `\pu{...}` 物理单位写法
 
 ### ❌ 缺失
 - 无
@@ -461,6 +484,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\def\name#1#2{body}` 带参数的 TeX 宏定义
 - ✅ `\newenvironment{name}[args]{begin-def}{end-def}` 自定义环境定义
 - ✅ `\renewenvironment{name}{begin-def}{end-def}` 重定义环境
+- ✅ `\DeclarePairedDelimiter` 配对定界符定义，支持 `*` 与 `[size]` 调用形式
 
 **特性说明：**
 - 支持 0-9 个参数，使用 `#1` ~ `#9` 表示
@@ -484,6 +508,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\fbox{text}` 文本模式方框（同 `\boxed` 但使用 FBOX 样式）
 - ✅ `\enclose{circle}{x}` 通用围框/圈注（对应 MathML `<menclose>`）
 - ✅ `\circled{1}` 圆圈标注简写
+- ✅ `\Aboxed{...}` mathtools 对齐方框
 - ✅ 支持 menclose notation 子集：`box`, `roundedbox`, `circle`
 - ✅ 支持边线 notation：`left`, `right`, `top`, `bottom`
 - ✅ 支持删除线 notation：`updiagonalstrike`, `downdiagonalstrike`, `verticalstrike`, `horizontalstrike`
@@ -501,6 +526,14 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\mathclap{内容}` 零宽居中叠加（绘制内容但宽度为0，内容居中对齐）
 - ✅ `\mathllap{内容}` 零宽左叠加（内容向左扩展）
 - ✅ `\mathrlap{内容}` 零宽右叠加（内容向右扩展）
+- ✅ `\clap`, `\llap`, `\rlap` 文本模式别名
+
+#### 尺寸与对齐控制
+- ✅ `\raisebox`, `\rule` TeX 尺寸布局
+- ✅ `\MoveEqLeft` mathtools 方程左移
+
+### 🛣 后续规划
+- `\includegraphics` 简化子集（由调用方提供图片及宽高）
 
 ### ❌ 缺失
 - 无
@@ -549,6 +582,13 @@ x^{\sum_{i=1}^{n}}
 - ✅ `增量测量` IncrementalLatexParser + LayoutCache 协同：AST 部分变更时未变更前缀子树自动命中缓存，仅重新测量受影响节点（WYSIWYG 编辑器实时渲染）
 - ✅ `基准测试套件` kotlinx-benchmark/JMH：标准化 benchmark 覆盖解析速度、测量速度、缓存冷热对比、增量测量端到端性能（持续集成回归检测）
 
+### 🛣 后续规划
+- Path 缓存池与超长文档可视区域虚拟化
+- LaTeX → Unicode 近似纯文本转换
+- 编辑器语法补全、括号匹配与诊断修正建议
+- 剪贴板、公式比较/Diff、AST 序列化能力
+- 更多预定义渲染主题
+
 ### ❌ 缺失
 - 无
 
@@ -580,14 +620,15 @@ x^{\sum_{i=1}^{n}}
 | API 与工程能力 | 13/13 | 0 | 100% |
 | 章节结构 | 6/6 | 0 | 100% |
 | RTL 文本方向 | 7/7 | 0 | 100% |
-| physics / siunitx 常用子集 | 10/10 | 0 | 100% |
-| **总体** | **394+/394+** | **0** | **100%** |
+| physics / siunitx 常用子集 | 高频子集 | 0 | 已覆盖 |
+| mathtools / TeX 兼容语法 | 高频子集 | 0 | 已覆盖 |
+| **总体** | **450+** | **0** | **100%** |
 
 ---
 
 ## 🎯 结论
 
-当前解析器在**数学公式核心功能**方面达到 **100% 覆盖**，涵盖 21 个功能类别、394+ 项已实现特性，无功能缺失。
+当前解析器已覆盖数学公式核心功能及常用宏包高频子集，包含 450+ 项已实现语法。
 
 **核心能力一览**：
 - 完整的数学排版基础（分数、根号、上下标、矩阵、括号、装饰符号）
@@ -653,84 +694,17 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\pdv{x}`、`\pdv{f}{x}`、`\pdv[n]{f}{x}` 偏微分简写
 - ✅ `\bra{x}`、`\ket{x}`、`\braket{a|b}` 狄拉克符号
 - ✅ `\abs{x}`、`\norm{x}` 绝对值与范数简写
+- ✅ `\Bra`, `\Ket`, `\Braket` 大写狄拉克命令
+- ✅ `\comm`, `\anticomm`, `\eval`, `\vb`, `\va` 常用算子与向量命令
 
 #### siunitx
 - ✅ `\SI{9.8}{m/s^2}` 数值与单位组合排版
 - ✅ `\si{kg.m/s^2}` 单位排版（正体，`.` 转为单位乘号）
 - ✅ `\num{1.23e4}` 科学计数法格式化为 `1.23 × 10^4`
+- ✅ `\qty`, `\unit`, `\numrange`, `\qtyrange`, `\ang` siunitx v3 常用命令
+- ✅ 常用 SI 前缀、基本单位与导出单位命令
 
 ### ❌ 缺失
 - 无（仅承诺上述简化子集，不等同于完整 physics/siunitx 宏包）
 
-**覆盖率**: 10/10 (100%) ✅
-
----
-
-## 22. 功能扩展规划（Roadmap）
-
-以下为待实现的功能。每项完成后应将状态标记为 ✅ 并移至对应章节。
-
----
-
-### 🔵 P0 — 增值能力 / 工程级扩展
-
-#### ❌ TikZ/PGF 基础绘图（简化子集）
-- **场景**: 在公式中嵌入简单的坐标系、函数图像
-- **范围**: 仅支持 `\draw` 线段、`\node` 文本、坐标点等核心子集
-- **难度**: 需要新的 AST 节点和独立的 TikZ 解析器 + Canvas 绘制流水线
-
----
-
-### 🟢 P1 — 渲染引擎优化与性能提升
-
-#### ❌ Path 缓存池
-- **方向**: 相同尺寸的根号/大括号 Path 复用
-- **场景**: 矩阵中大量相同结构
-
-#### ❌ 虚拟化/懒加载
-- **方向**: 超长文档中只测量和绘制可视区域内的公式
-- **场景**: 论文级多页公式文档
-
----
-
-### 🟡 P2 — 新 LaTeX 功能扩展
-
-#### ❌ 列表环境
-- **范围**: `\begin{enumerate}`/`\begin{itemize}` 基本有序/无序列表
-- **场景**: 非纯公式的混合文档排版
-
-#### ❌ `\includegraphics` 简化子集
-- **范围**: 支持在文档中嵌入图片（传入 ImageBitmap），支持 width/height 参数
-- **场景**: 图文混排
-
----
-
-### 🟠 P3 — API 能力与工程能力增强
-
-#### ❌ LaTeX → Unicode 纯文本转换
-- **方向**: 将公式转为 Unicode 近似文本（如 `\frac{1}{2}` → `½`，`x^2` → `x²`）
-- **场景**: 复制到剪贴板、IM 消息发送
-
-#### ❌ 语法补全/提示 API
-- **方向**: 为 WYSIWYG 编辑器提供命令自动补全、括号匹配提示
-- **场景**: 编辑器用户体验提升
-
-#### ❌ 错误恢复增强
-- **方向**: 解析出错时增加"你是否想输入 X？"的修正建议（基于已有 diagnostics API 扩展）
-- **场景**: 用户输入纠错
-
-#### ❌ 主题系统
-- **方向**: 预定义多套渲染主题（经典黑白、彩色教学、护眼模式、论文印刷），一键切换
-- **场景**: 产品化集成
-
-#### ❌ 剪贴板支持
-- **方向**: 长按公式 → 复制 LaTeX 源码 / 复制为图片 / 复制为 MathML
-- **场景**: 用户交互
-
-#### ❌ 公式比较/Diff API
-- **方向**: 比较两个 LaTeX AST 的差异，高亮变化部分
-- **场景**: 数学批改、版本对比、教育科技
-
-#### ❌ AST 序列化/反序列化
-- **方向**: AST 的 JSON/Protobuf 序列化，支持缓存和网络传输
-- **场景**: 前后端协作、离线缓存
+**范围说明**: 支持上述高频语法子集，不等同于完整 physics/siunitx 宏包。

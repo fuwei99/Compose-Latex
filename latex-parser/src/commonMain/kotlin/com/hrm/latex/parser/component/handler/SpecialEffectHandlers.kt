@@ -52,7 +52,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
         )
     }
 
-    register("boxed") { _, ctx, _ ->
+    register("boxed", "Aboxed") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         val content = unwrapContent(arg)
         LatexNode.Boxed(content)
@@ -143,21 +143,72 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     }
 
     // \mathclap — 零宽居中叠加
-    register("mathclap") { _, ctx, _ ->
+    register("mathclap", "clap") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         LatexNode.MathLap(unwrapContent(arg), LatexNode.MathLap.LapType.CLAP)
     }
 
     // \mathllap — 零宽左叠加（内容向左扩展）
-    register("mathllap") { _, ctx, _ ->
+    register("mathllap", "llap") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         LatexNode.MathLap(unwrapContent(arg), LatexNode.MathLap.LapType.LLAP)
     }
 
     // \mathrlap — 零宽右叠加（内容向右扩展）
-    register("mathrlap") { _, ctx, _ ->
+    register("mathrlap", "rlap") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         LatexNode.MathLap(unwrapContent(arg), LatexNode.MathLap.LapType.RLAP)
+    }
+
+    register("raisebox") { _, ctx, stream ->
+        val shift = ParseUtils.extractText(
+            listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
+        ).trim()
+        repeat(2) {
+            if (stream.peek() is LatexToken.LeftBracket) {
+                stream.advance()
+                ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
+                if (stream.peek() is LatexToken.RightBracket) stream.advance()
+            }
+        }
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Layout(
+            layoutType = LatexNode.Layout.LayoutType.RAISE_BOX,
+            content = unwrapContent(arg),
+            shift = shift
+        )
+    }
+
+    register("rule") { _, ctx, stream ->
+        val raise = if (stream.peek() is LatexToken.LeftBracket) {
+            stream.advance()
+            val nodes = ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
+            if (stream.peek() is LatexToken.RightBracket) stream.advance()
+            ParseUtils.extractText(nodes).trim()
+        } else "0pt"
+        val width = ParseUtils.extractText(
+            listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
+        ).trim()
+        val height = ParseUtils.extractText(
+            listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
+        ).trim()
+        LatexNode.Layout(
+            layoutType = LatexNode.Layout.LayoutType.RULE,
+            width = width,
+            height = height,
+            shift = raise
+        )
+    }
+
+    // mathtools alignment helper: default shift is two ems to the left.
+    register("MoveEqLeft") { _, ctx, stream ->
+        val amount = if (stream.peek() is LatexToken.LeftBracket) {
+            stream.advance()
+            val nodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
+            if (stream.peek() is LatexToken.RightBracket) stream.advance()
+            ParseUtils.extractText(nodes).trim().toFloatOrNull() ?: 2f
+        } else 2f
+        LatexNode.HSpace("${-amount}em")
     }
 }
 

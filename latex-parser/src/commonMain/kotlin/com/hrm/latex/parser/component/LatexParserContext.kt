@@ -37,7 +37,9 @@ data class CustomCommand(
     val name: String,
     val numArgs: Int,
     val definition: List<LatexNode>,
-    val defaultArg: String? = null
+    val defaultArg: String? = null,
+    /** Accept mathtools-style `*` or `[size]` before the first argument. */
+    val acceptsDelimiterModifier: Boolean = false
 )
 
 /**

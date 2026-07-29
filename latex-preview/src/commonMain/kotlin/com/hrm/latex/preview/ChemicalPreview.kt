@@ -98,6 +98,17 @@ val chemicalPreviewGroups = listOf(
             PreviewItem("comp4", "葡萄糖", "\\ce{C6H12O6}"),
         )
     ),
+    PreviewGroup(
+        id = "chemical_annotations_bonds",
+        title = "6. 箭头标注与化学键",
+        description = "反应条件、催化剂与单/双/三键",
+        items = listOf(
+            PreviewItem("bond1", "多种化学键", "\\ce{C-C=C#N}"),
+            PreviewItem("bond2", "箭头上下标注", "\\ce{A ->[heat][catalyst] B}"),
+            PreviewItem("bond3", "bond 命令", "\\ce{C\\bond{#}N}"),
+            PreviewItem("bond4", "物理单位", "\\pu{1.2e3 kg.m/s^2}"),
+        )
+    ),
 )
 
 @Preview

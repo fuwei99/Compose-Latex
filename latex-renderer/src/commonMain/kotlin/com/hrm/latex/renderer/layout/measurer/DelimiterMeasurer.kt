@@ -96,23 +96,31 @@ internal class DelimiterMeasurer : NodeMeasurer {
         density: Density,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val contentLayout = measureGroup(node.content, context)
-
         val leftStr = node.left
         val rightStr = node.right
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-        val contentDepth = contentLayout.height - contentLayout.baseline
-        val maxDistanceFromAxis = max(
-            contentLayout.baseline - axisHeight,
-            contentDepth + axisHeight
-        )
+        val provisionalContent = measureGroup(node.content, context)
+        val provisionalHeight = delimiterTargetHeight(provisionalContent, axisHeight, fontSizePx)
+        val middleScale = when {
+            provisionalHeight <= fontSizePx -> 1.0f
+            provisionalHeight <= fontSizePx * 1.2f -> 1.2f
+            provisionalHeight <= fontSizePx * 1.8f -> 1.8f
+            provisionalHeight <= fontSizePx * 2.4f -> 2.4f
+            else -> 3.0f
+        }
+        val contentLayout = if (node.content.any { it is LatexNode.ManualSizedDelimiter && it.isMiddle }) {
+            measureGroup(
+                node.content.map {
+                    if (it is LatexNode.ManualSizedDelimiter && it.isMiddle) it.copy(size = middleScale) else it
+                },
+                context
+            )
+        } else provisionalContent
+
         // TeX make_left_right / KaTeX: delimiterFactor=901, shortfall=5pt=.5em.
-        val delimiterHeight = max(
-            2f * maxDistanceFromAxis * 0.901f,
-            2f * maxDistanceFromAxis - fontSizePx * 0.5f
-        )
+        val delimiterHeight = delimiterTargetHeight(contentLayout, axisHeight, fontSizePx)
 
         val leftLayout = if (leftStr.isNotEmpty()) {
             centerOnAxis(
@@ -159,6 +167,18 @@ internal class DelimiterMeasurer : NodeMeasurer {
                 rightLayout.draw(this, curX, y + baseline - rightLayout.baseline)
             }
         }
+    }
+
+    private fun delimiterTargetHeight(content: NodeLayout, axisHeight: Float, fontSizePx: Float): Float {
+        val contentDepth = content.height - content.baseline
+        val maxDistanceFromAxis = max(
+            content.baseline - axisHeight,
+            contentDepth + axisHeight
+        )
+        return max(
+            2f * maxDistanceFromAxis * 0.901f,
+            2f * maxDistanceFromAxis - fontSizePx * 0.5f
+        )
     }
 
     /**

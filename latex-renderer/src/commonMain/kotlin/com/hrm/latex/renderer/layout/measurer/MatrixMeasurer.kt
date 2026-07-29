@@ -137,7 +137,15 @@ internal class MatrixMeasurer : NodeMeasurer {
         density: Density,
         measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val contentLayout = measureMatrixLike(node.rows, context, measurer, density, measureNode)
+        val alignments = node.alignment?.let { spec ->
+            val parsed = parseAlignments(spec).first
+            if (parsed.size == 1) {
+                List(node.rows.maxOfOrNull { it.size } ?: 0) { parsed.single() }
+            } else parsed
+        }
+        val contentLayout = measureMatrixLike(
+            node.rows, context, measurer, density, measureNode, alignments = alignments
+        )
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 

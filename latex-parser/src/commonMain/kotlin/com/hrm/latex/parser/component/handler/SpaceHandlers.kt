@@ -54,4 +54,10 @@ internal fun CommandRegistry.installSpaceHandlers() {
         }
         LatexNode.HSpace(dimension)
     }
+
+    register("kern", "mkern") { _, ctx, stream ->
+        LatexNode.HSpace(ParseUtils.parseDimension(ctx, stream))
+    }
+    register("allowbreak") { _, _, _ -> LatexNode.HSpace("0pt") }
+    register("cr") { _, _, _ -> LatexNode.NewLine() }
 }

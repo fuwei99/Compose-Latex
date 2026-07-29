@@ -25,12 +25,12 @@
 - **结构化诊断**：`parseWithDiagnostics()` 提供 8 种分类的结构化诊断信息，按严重级别过滤。
 - **RTL 支持**：完整的从右到左文本方向支持（`\RLE`、`\LRE`、RTL/LTR 环境，支持嵌套）。
 
-## 📐 已支持的 LaTeX 功能（394+）
+## 📐 已支持的 LaTeX 功能（450+）
 
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式、上下标</summary>
 
-`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\binom`, `\tbinom`, `\dbinom`, `\sqrt`, `\sqrt[n]{x}`, `x_i`, `x^2`。无花括号上下标严格只消费一个字符，因此 `a_ib_jx^{i+j}` 会解析为 `a_i b_j x^{i+j}`。
+`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\genfrac`, `\splitfrac`, `\splitdfrac`, `\binom`, `\tbinom`, `\dbinom`，以及 `\over`, `\atop`, `\choose`, `\above` 等 TeX 中缀形式；同时支持根号与上下标。
 </details>
 
 <details>
@@ -38,7 +38,7 @@
 
 - **希腊字母**：全部小写 (α–ω，含 `\omicron`)、大写 (Γ–Ω)、KaTeX 风格大写别名（如 `\Alpha`、`\Beta`、`\Epsilon`、`\Omicron`）及变体 (ε/ϵ, θ/ϑ, φ/ϕ, `\varGamma`–`\varOmega` 等)
 - **运算符**：`+`, `-`, `\times`, `\div`, `\pm`, `\mp`, `\cdot`, `\oplus`, `\otimes` 等
-- **关系符**：`=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\ll`, `\gg` 等
+- **关系符**：`=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\coloneqq`, `\eqqcolon` 等
 - **集合论**：`\in`, `\notin`, `\subset`, `\cup`, `\cap`, `\emptyset`, `\mathbb{R}` 等
 - **逻辑**：`\land`, `\lor`, `\neg`, `\Rightarrow`, `\Leftrightarrow`, `\forall`, `\exists`
 - **箭头**：`\to`, `\rightarrow`, `\leftarrow`, `\leftrightarrow`, `\Rightarrow`, `\hookrightarrow`, 鱼叉箭头等
@@ -58,25 +58,25 @@
 </details>
 
 <details>
-<summary><b>矩阵（8）</b> — 所有标准矩阵环境</summary>
+<summary><b>矩阵</b> — 标准、星号与紧凑矩阵环境</summary>
 
-`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`, `array`
+`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`，支持 mathtools 星号形式及 `[l|c|r]` 对齐；另支持 `array`, `subarray`。
 </details>
 
 <details>
 <summary><b>括号与分隔符</b> — 自动伸缩与手动大小</summary>
 
-- **自动伸缩**：`\left( \right)`, `\left[ \right]`, `\left\{ \right\}`, `\left| \right|`, `\langle`, `\rangle`, `\lfloor`, `\rfloor`, `\lceil`, `\rceil`, `\lvert`, `\rvert`, `\lVert`, `\rVert`
+- **自动伸缩**：`\left...\right`、内部 `\middle`，以及尖括号、取整括号、单双竖线变体
 - **不对称分隔符**：`\left. \right|`（求值符号）、`\left\{ \right.`（分段函数）
 - **手动大小**：`\big`, `\Big`, `\bigg`, `\Bigg` 及 `\bigl`, `\bigr`, `\bigm` 变体
 </details>
 
 <details>
-<summary><b>装饰符号（36）</b> — 重音、取消线、可扩展箭头、堆叠、括号标注</summary>
+<summary><b>装饰符号（42+）</b> — 重音、取消线、可扩展箭头、堆叠、括号标注</summary>
 
-- **重音符号**：`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
+- **重音符号**：原有重音外，支持 `\widecheck`, `\overparen`, `\underparen`
 - **大括号标注**：`\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
-- **箭头装饰**：`\overrightarrow`, `\overleftarrow`
+- **箭头装饰**：`\overrightarrow`, `\overleftarrow`, `\overleftrightarrow`, `\underleftarrow`, `\underrightarrow`
 - **取消线**：`\cancel`, `\bcancel`（反向）, `\xcancel`（交叉）
 - **可扩展箭头与等号**：`\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`, `\xlongequal`
 - **堆叠**：`\overset`, `\underset`, `\stackrel`
@@ -85,7 +85,7 @@
 <details>
 <summary><b>字体样式（17）</b></summary>
 
-`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\symbf`, `\symit`, `\symsf`, `\symrm`
+`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 及 Unicode-math 样式别名。
 </details>
 
 <details>
@@ -104,18 +104,18 @@
 <summary><b>环境（21）</b> — 对齐、分段、矩阵、表格</summary>
 
 - **公式环境**：`equation(*)`, `displaymath`
-- **对齐环境**：`align(*)`, `aligned`, `flalign(*)`, `alignat(*)`
+- **对齐环境**：`align(*)`, `aligned`, `flalign(*)`, `alignat(*)`, `alignedat`
 - **居中环境**：`gather(*)`, `gathered`
-- **分段函数**：`cases`, `dcases`（displaystyle）, `rcases`（右花括号）
+- **分段函数**：`cases`, `dcases`（displaystyle）, `rcases`（右花括号）及星号形式
 - **多行/分割**：`split`, `multline(*)`
 - **其他**：`eqnarray(*)`, `subequations`, `tabular`（l/c/r 列对齐）
-- **公式自动编号**：支持 `\tag`/`\tag*`、`\label`/`\ref`/`\eqref`，星号环境不参与编号
+- **行控制与编号**：`\\`, `\cr`, `\intertext`, `\shortintertext`, `\notag`, `\nonumber`, `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`
 </details>
 
 <details>
 <summary><b>空格控制</b></summary>
 
-`\ `、`\space`、`\,`、`\thinspace`、`\:`、`\>`、`\medspace`、`\;`、`\thickspace`、`\quad`、`\qquad`、`\!`、`\negthinspace`、`\enspace`、`\enskip`、`\negmedspace`、`\negthickspace`、`\hspace{...}`、普通空格；同时支持 `\{`、`\}`、`\$`、`\%`、`\#`、`\&`、`\_` 等特殊字符转义。`\|` 表示双竖线，与 `\Vert` 等价。
+支持原有命名数学空格、`\hspace{...}`，并新增 `\kern`, `\mkern`, `\allowbreak`；同时支持常用特殊字符转义。
 </details>
 
 <details>
@@ -128,7 +128,7 @@
 <details>
 <summary><b>化学公式（13）</b> — mhchem 宏包</summary>
 
-`\ce{H2O}`, `\ce{H2SO4}`, `\ce{Na+}`, `\ce{SO4^{2-}}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, 系数、同位素标记、配合物
+`\ce{...}` 支持分子、离子、系数、同位素、单/双/三键，以及带 `[上方][下方]` 标注的反应箭头；另支持 `\bond{...}` 与 `\pu{...}`。
 </details>
 
 <details>
@@ -140,14 +140,16 @@
 - **已支持 attributes**：`mathcolor`, `mathbackground`
 - **幻影与间距**：`\phantom`, `\smash`, `\vphantom`, `\hphantom`, `\mathstrut`
 - **零宽叠加**：`\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
+- **TeX 布局**：`\clap`, `\llap`, `\rlap`, `\raisebox`, `\rule`
+- **mathtools**：`\Aboxed`, `\MoveEqLeft`, `\splitfrac`, `\splitdfrac`、定义关系符与 `\DeclarePairedDelimiter`
 </details>
 
 <details>
-<summary><b>物理与 SI 单位（10）</b> — physics 与 siunitx 常用子集</summary>
+<summary><b>物理与 SI 单位</b> — physics 与 siunitx 常用子集</summary>
 
 - **导数简写**：`\dv{x}`, `\dv{f}{x}`, `\dv[2]{f}{x}` 以及对应的 `\pdv` 形式
-- **狄拉克符号与定界符**：`\bra{x}`, `\ket{x}`, `\braket{a|b}`, `\abs{x}`, `\norm{x}`
-- **数字与单位**：`\SI{9.8}{m/s^2}`, `\si{kg.m/s^2}`, `\num{1.23e4}`
+- **狄拉克符号与算子**：`\bra`/`\Bra`, `\ket`/`\Ket`, `\braket`/`\Braket`, `\comm`, `\anticomm`, `\eval`, `\vb`, `\va`, `\abs`, `\norm`
+- **数字与单位**：兼容 `\SI`, `\si`，新增 `\qty`, `\unit`, `\numrange`, `\qtyrange`, `\ang` 与常用 SI 前缀/单位命令
 </details>
 
 <details>
@@ -162,7 +164,7 @@
 <details>
 <summary><b>自定义命令与宏定义（9）</b></summary>
 
-`\newcommand`, `\renewcommand`, `\def`（0–9 个参数，支持可选参数默认值）, `\newenvironment`, `\renewenvironment`
+`\newcommand`, `\renewcommand`, `\def`（0–9 个参数，支持可选参数默认值）, `\newenvironment`, `\renewenvironment`, `\DeclarePairedDelimiter`
 </details>
 
 <details>
@@ -506,9 +508,9 @@ dependencies {
 ./run_parser_tests.sh
 ```
 
-## 📊 路线图与功能覆盖
+## 📊 功能覆盖
 
-详细的功能支持列表请参阅：[PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md)
+详细的功能支持列表及归入各章节的后续事项请参阅：[PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md)
 
 ## 🙏 致谢
 

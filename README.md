@@ -25,12 +25,12 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Structured Diagnostics**: `parseWithDiagnostics()` provides 8-category structured diagnostics with severity filtering.
 - **RTL Support**: Complete right-to-left text direction support (`\RLE`, `\LRE`, RTL/LTR environments, nesting).
 
-## 📐 Supported LaTeX Features (394+)
+## 📐 Supported LaTeX Features (450+)
 
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials, scripts</summary>
 
-`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\binom`, `\tbinom`, `\dbinom`, `\sqrt`, `\sqrt[n]{x}`, `x_i`, `x^2`. Unbraced scripts consume exactly one character, so `a_ib_jx^{i+j}` is parsed as `a_i b_j x^{i+j}`.
+`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\genfrac`, `\splitfrac`, `\splitdfrac`, `\binom`, `\tbinom`, `\dbinom`, and TeX infix forms `\over`, `\atop`, `\choose`, `\above`; plus `\sqrt`, `\sqrt[n]{x}`, `x_i`, `x^2`. Unbraced scripts consume exactly one character.
 </details>
 
 <details>
@@ -38,7 +38,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 
 - **Greek letters**: all lowercase (α–ω, including `\omicron`), uppercase (Γ–Ω), KaTeX uppercase aliases (`\Alpha`, `\Beta`, `\Epsilon`, `\Omicron`, ...), and variants (ε/ϵ, θ/ϑ, φ/ϕ, `\varGamma`–`\varOmega`, etc.)
 - **Operators**: `+`, `-`, `\times`, `\div`, `\pm`, `\mp`, `\cdot`, `\oplus`, `\otimes`, …
-- **Relations**: `=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\ll`, `\gg`, …
+- **Relations**: `=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\coloneqq`, `\eqqcolon`, …
 - **Set theory**: `\in`, `\notin`, `\subset`, `\cup`, `\cap`, `\emptyset`, `\mathbb{R}`, …
 - **Logic**: `\land`, `\lor`, `\neg`, `\Rightarrow`, `\Leftrightarrow`, `\forall`, `\exists`
 - **Arrows**: `\to`, `\rightarrow`, `\leftarrow`, `\leftrightarrow`, `\Rightarrow`, `\hookrightarrow`, harpoons, …
@@ -58,25 +58,25 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Matrices (8)</b> — all standard matrix environments</summary>
+<summary><b>Matrices</b> — standard, starred, and compact environments</summary>
 
-`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`, `array`
+`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`, their mathtools starred forms with `[l|c|r]`, plus `array` and `subarray`.
 </details>
 
 <details>
 <summary><b>Delimiters</b> — auto-scaling & manual sizing</summary>
 
-- **Auto-scaling**: `\left( \right)`, `\left[ \right]`, `\left\{ \right\}`, `\left| \right|`, `\langle`, `\rangle`, `\lfloor`, `\rfloor`, `\lceil`, `\rceil`, `\lvert`, `\rvert`, `\lVert`, `\rVert`
+- **Auto-scaling**: `\left( \right)`, `\left[ \right]`, `\left\{ \right\}`, `\left| \right|`, and `\middle` inside a delimited expression; angle, floor, ceiling, and vertical-bar variants
 - **Asymmetric**: `\left. \right|` (evaluation bar), `\left\{ \right.` (piecewise)
 - **Manual sizing**: `\big`, `\Big`, `\bigg`, `\Bigg` with `\bigl`, `\bigr`, `\bigm` variants
 </details>
 
 <details>
-<summary><b>Accents & Decorations (36)</b> — accents, cancels, extensible arrows, stacking, bracket annotations</summary>
+<summary><b>Accents & Decorations (42+)</b> — accents, cancels, extensible arrows, stacking, bracket annotations</summary>
 
-- **Accents**: `\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
+- **Accents**: `\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\widecheck`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`, `\overparen`, `\underparen`
 - **Brace annotations**: `\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
-- **Arrow decorations**: `\overrightarrow`, `\overleftarrow`
+- **Arrow decorations**: `\overrightarrow`, `\overleftarrow`, `\overleftrightarrow`, `\underleftarrow`, `\underrightarrow`
 - **Cancel lines**: `\cancel`, `\bcancel` (reverse), `\xcancel` (cross)
 - **Extensible arrows and equals**: `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`, `\xlongequal`
 - **Stacking**: `\overset`, `\underset`, `\stackrel`
@@ -85,7 +85,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <details>
 <summary><b>Font Styles (17)</b></summary>
 
-`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\symbf`, `\symit`, `\symsf`, `\symrm`
+`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph`, and Unicode-math style aliases.
 </details>
 
 <details>
@@ -104,18 +104,18 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <summary><b>Environments (21)</b> — alignment, piecewise, matrices, tables</summary>
 
 - **Equation environments**: `equation(*)`, `displaymath`
-- **Alignment environments**: `align(*)`, `aligned`, `flalign(*)`, `alignat(*)`
+- **Alignment environments**: `align(*)`, `aligned`, `flalign(*)`, `alignat(*)`, `alignedat`
 - **Centering environments**: `gather(*)`, `gathered`
-- **Piecewise functions**: `cases`, `dcases` (displaystyle), `rcases` (right brace)
+- **Piecewise functions**: `cases`, `dcases` (displaystyle), `rcases` (right brace), including starred forms
 - **Multi-line/splitting**: `split`, `multline(*)`
 - **Others**: `eqnarray(*)`, `subequations`, `tabular` (l/c/r column alignment)
-- **Auto-numbering**: Supports `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`, starred environments skip numbering
+- **Row controls and numbering**: `\\`, `\cr`, `\intertext`, `\shortintertext`, `\notag`, `\nonumber`, `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`
 </details>
 
 <details>
 <summary><b>Spacing</b></summary>
 
-`\ `, `\space`, `\,`, `\thinspace`, `\:`, `\>`, `\medspace`, `\;`, `\thickspace`, `\quad`, `\qquad`, `\!`, `\negthinspace`, `\enspace`, `\enskip`, `\negmedspace`, `\negthickspace`, `\hspace{...}`, normal spaces. Escaped special characters such as `\{`, `\}`, `\$`, `\%`, `\#`, `\&`, and `\_` are also supported. `\|` produces a double vertical bar, equivalent to `\Vert`.
+`\ `, named math spaces, `\hspace{...}`, `\kern`, `\mkern`, and `\allowbreak`. Escaped special characters such as `\{`, `\}`, `\$`, `\%`, `\#`, `\&`, and `\_` are also supported. `\|` produces a double vertical bar, equivalent to `\Vert`.
 </details>
 
 <details>
@@ -128,7 +128,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <details>
 <summary><b>Chemical Formulas (13)</b> — mhchem package</summary>
 
-`\ce{H2O}`, `\ce{H2SO4}`, `\ce{Na+}`, `\ce{SO4^{2-}}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, coefficients, isotope notation, complexes
+`\ce{H2O}`, ions, coefficients, isotope notation, single/double/triple bonds, and reaction arrows with `[above][below]` annotations; `\bond{...}` and `\pu{...}` are also accepted.
 </details>
 
 <details>
@@ -140,14 +140,16 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Supported attributes**: `mathcolor`, `mathbackground`
 - **Phantoms & spacing**: `\phantom`, `\smash`, `\vphantom`, `\hphantom`, `\mathstrut`
 - **Zero-width overlaps**: `\mathclap{content}`, `\mathllap{content}`, `\mathrlap{content}`
+- **TeX layout**: `\clap`, `\llap`, `\rlap`, `\raisebox`, `\rule`
+- **mathtools**: `\Aboxed`, `\MoveEqLeft`, `\splitfrac`, `\splitdfrac`, definition relations, and `\DeclarePairedDelimiter`
 </details>
 
 <details>
-<summary><b>Physics & SI Units (10)</b> — common physics and siunitx package subsets</summary>
+<summary><b>Physics & SI Units</b> — common physics and siunitx package subsets</summary>
 
 - **Derivatives**: `\dv{x}`, `\dv{f}{x}`, `\dv[2]{f}{x}`, and the corresponding `\pdv` forms
-- **Dirac notation and delimiters**: `\bra{x}`, `\ket{x}`, `\braket{a|b}`, `\abs{x}`, `\norm{x}`
-- **Numbers and units**: `\SI{9.8}{m/s^2}`, `\si{kg.m/s^2}`, `\num{1.23e4}`
+- **Dirac notation and operators**: `\bra`/`\Bra`, `\ket`/`\Ket`, `\braket`/`\Braket`, `\comm`, `\anticomm`, `\eval`, `\vb`, `\va`, `\abs`, `\norm`
+- **Numbers and units**: legacy `\SI`, `\si`; modern `\qty`, `\unit`, `\numrange`, `\qtyrange`, `\ang`; common SI prefix/unit macros
 </details>
 
 <details>
@@ -162,7 +164,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <details>
 <summary><b>Custom Commands & Macros (9)</b></summary>
 
-`\newcommand`, `\renewcommand`, `\def` (0–9 parameters, optional argument defaults), `\newenvironment`, `\renewenvironment`
+`\newcommand`, `\renewcommand`, `\def` (0–9 parameters, optional argument defaults), `\newenvironment`, `\renewenvironment`, `\DeclarePairedDelimiter`
 </details>
 
 <details>
@@ -508,9 +510,9 @@ dependencies {
 ./run_parser_tests.sh
 ```
 
-## 📊 Roadmap & Coverage
+## 📊 Coverage
 
-For a detailed list of supported features, please refer to: [PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md)
+For supported features and chapter-specific follow-up items, see [PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md).
 
 ## 🙏 Acknowledgements
 

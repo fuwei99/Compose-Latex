@@ -74,6 +74,9 @@ internal class AccentMeasurer : NodeMeasurer {
             AccentType.OVERLINE, AccentType.UNDERLINE,
             AccentType.OVERBRACE, AccentType.UNDERBRACE,
             AccentType.OVERBRACKET, AccentType.UNDERBRACKET,
+            AccentType.WIDECHECK, AccentType.OVERLEFTRIGHTARROW,
+            AccentType.UNDERLEFTARROW, AccentType.UNDERRIGHTARROW,
+            AccentType.OVERPAREN, AccentType.UNDERPAREN,
             AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> true
 
             else -> false
@@ -240,17 +243,26 @@ internal class AccentMeasurer : NodeMeasurer {
     ): NodeLayout {
         val isUnder = node.accentType == AccentType.UNDERLINE ||
                 node.accentType == AccentType.UNDERBRACE ||
-                node.accentType == AccentType.UNDERBRACKET
+                node.accentType == AccentType.UNDERBRACKET ||
+                node.accentType == AccentType.UNDERLEFTARROW ||
+                node.accentType == AccentType.UNDERRIGHTARROW ||
+                node.accentType == AccentType.UNDERPAREN
 
         val isArrowAccent = node.accentType == AccentType.OVERRIGHTARROW ||
-                node.accentType == AccentType.OVERLEFTARROW
+                node.accentType == AccentType.OVERLEFTARROW ||
+                node.accentType == AccentType.OVERLEFTRIGHTARROW ||
+                node.accentType == AccentType.UNDERLEFTARROW ||
+                node.accentType == AccentType.UNDERRIGHTARROW
 
         val strokeWidth = when (node.accentType) {
             AccentType.OVERBRACE, AccentType.UNDERBRACE -> with(density) { 1.2f.dp.toPx() }
             AccentType.OVERBRACKET, AccentType.UNDERBRACKET -> with(density) { 1.2f.dp.toPx() }
-            AccentType.WIDEHAT -> with(density) { 1.5f.dp.toPx() }
+            AccentType.WIDEHAT, AccentType.WIDECHECK,
+            AccentType.OVERPAREN, AccentType.UNDERPAREN -> with(density) { 1.5f.dp.toPx() }
             AccentType.OVERLINE, AccentType.UNDERLINE,
-            AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW -> with(density) { 1.5f.dp.toPx() }
+            AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
+            AccentType.OVERLEFTRIGHTARROW, AccentType.UNDERLEFTARROW,
+            AccentType.UNDERRIGHTARROW -> with(density) { 1.5f.dp.toPx() }
 
             AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> with(density) { 1.5f.dp.toPx() }
             else -> with(density) { 1.5f.dp.toPx() }
@@ -259,7 +271,9 @@ internal class AccentMeasurer : NodeMeasurer {
 
         val accentHeight = when (node.accentType) {
             AccentType.OVERLINE, AccentType.UNDERLINE -> with(density) { 2f.dp.toPx() }
-            AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW ->
+            AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
+            AccentType.OVERLEFTRIGHTARROW, AccentType.UNDERLEFTARROW,
+            AccentType.UNDERRIGHTARROW ->
                 with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_ARROW_HEIGHT).toPx() }
 
             else -> with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_DEFAULT_HEIGHT).toPx() }
@@ -402,7 +416,23 @@ internal class AccentMeasurer : NodeMeasurer {
                 }
             }
 
-            AccentType.OVERRIGHTARROW -> {
+            AccentType.WIDECHECK -> Path().apply {
+                moveTo(0f, 0f)
+                lineTo(width / 2, accentHeight)
+                lineTo(width, 0f)
+            }
+
+            AccentType.OVERPAREN -> Path().apply {
+                moveTo(0f, accentHeight)
+                cubicTo(width * 0.2f, 0f, width * 0.8f, 0f, width, accentHeight)
+            }
+
+            AccentType.UNDERPAREN -> Path().apply {
+                moveTo(0f, 0f)
+                cubicTo(width * 0.2f, accentHeight, width * 0.8f, accentHeight, width, 0f)
+            }
+
+            AccentType.OVERRIGHTARROW, AccentType.UNDERRIGHTARROW -> {
                 val arrowHeadSize = with(density) { 4f.dp.toPx() }
                 Path().apply {
                     moveTo(width, accentHeight / 2)
@@ -412,12 +442,26 @@ internal class AccentMeasurer : NodeMeasurer {
                 }
             }
 
-            AccentType.OVERLEFTARROW -> {
+            AccentType.OVERLEFTARROW, AccentType.UNDERLEFTARROW -> {
                 val arrowHeadSize = with(density) { 4f.dp.toPx() }
                 Path().apply {
                     moveTo(0f, accentHeight / 2)
                     lineTo(arrowHeadSize, accentHeight / 2 - arrowHeadSize / 2)
                     lineTo(arrowHeadSize, accentHeight / 2 + arrowHeadSize / 2)
+                    close()
+                }
+            }
+
+            AccentType.OVERLEFTRIGHTARROW -> {
+                val arrowHeadSize = with(density) { 4f.dp.toPx() }
+                Path().apply {
+                    moveTo(0f, accentHeight / 2)
+                    lineTo(arrowHeadSize, accentHeight / 2 - arrowHeadSize / 2)
+                    lineTo(arrowHeadSize, accentHeight / 2 + arrowHeadSize / 2)
+                    close()
+                    moveTo(width, accentHeight / 2)
+                    lineTo(width - arrowHeadSize, accentHeight / 2 - arrowHeadSize / 2)
+                    lineTo(width - arrowHeadSize, accentHeight / 2 + arrowHeadSize / 2)
                     close()
                 }
             }
@@ -445,7 +489,8 @@ internal class AccentMeasurer : NodeMeasurer {
 
                 AccentType.OVERBRACE, AccentType.UNDERBRACE,
                 AccentType.OVERBRACKET, AccentType.UNDERBRACKET,
-                AccentType.WIDEHAT -> {
+                AccentType.WIDEHAT, AccentType.WIDECHECK,
+                AccentType.OVERPAREN, AccentType.UNDERPAREN -> {
                     accentPath?.let { path ->
                         withTransform({ translate(left = x, top = accentY) }) {
                             drawPath(
@@ -457,21 +502,9 @@ internal class AccentMeasurer : NodeMeasurer {
                     }
                 }
 
-                AccentType.OVERRIGHTARROW -> {
-                    drawLine(
-                        color = context.color,
-                        start = Offset(x, accentY + accentHeight / 2),
-                        end = Offset(x + width, accentY + accentHeight / 2),
-                        strokeWidth = strokeWidth
-                    )
-                    accentPath?.let { path ->
-                        withTransform({ translate(left = x, top = accentY) }) {
-                            drawPath(path = path, color = context.color)
-                        }
-                    }
-                }
-
-                AccentType.OVERLEFTARROW -> {
+                AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
+                AccentType.OVERLEFTRIGHTARROW, AccentType.UNDERLEFTARROW,
+                AccentType.UNDERRIGHTARROW -> {
                     drawLine(
                         color = context.color,
                         start = Offset(x, accentY + accentHeight / 2),

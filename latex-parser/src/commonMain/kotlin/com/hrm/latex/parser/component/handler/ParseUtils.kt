@@ -34,6 +34,11 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  */
 internal object ParseUtils {
 
+    private val dimensionPattern = Regex(
+        """[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*(?:em|ex|mu|pt|px|mm|cm|in|bp|pc|dd|cc|sp)""",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
      * 从节点中提取纯文本
      */
@@ -89,6 +94,65 @@ internal object ParseUtils {
             is LatexNode.Symbol -> node.symbol
             else -> ""
         }
+    }
+
+    /**
+     * Extracts a delimiter character from a parsed argument.
+     * Both literal delimiters and command forms such as \langle/\rVert are accepted.
+     */
+    fun extractDelimiter(node: LatexNode): String {
+        val raw = when (node) {
+            is LatexNode.Group -> node.children.singleOrNull()?.let(::extractDelimiter)
+                ?: extractText(node.children)
+            is LatexNode.Command -> node.name
+            is LatexNode.Symbol -> node.unicode
+            is LatexNode.Text -> node.content
+            else -> extractText(listOf(node))
+        }.trim()
+        return delimiterFromName(raw)
+    }
+
+    fun delimiterFromName(raw: String): String = when (raw.removePrefix("\\")) {
+        "." -> ""
+        "langle" -> "⟨"
+        "rangle" -> "⟩"
+        "lfloor" -> "⌊"
+        "rfloor" -> "⌋"
+        "lceil" -> "⌈"
+        "rceil" -> "⌉"
+        "lgroup" -> "⟮"
+        "rgroup" -> "⟯"
+        "lmoustache" -> "⎰"
+        "rmoustache" -> "⎱"
+        "lvert", "rvert", "vert" -> "|"
+        "lVert", "rVert", "Vert" -> "‖"
+        "|" -> "|"
+        "lbrace", "{" -> "{"
+        "rbrace", "}" -> "}"
+        else -> raw.removePrefix("\\")
+    }
+
+    /**
+     * Parses a TeX dimension either in braces (`{1.2em}`) or in the usual
+     * unbraced form (`1.2em`). Leading whitespace is ignored.
+     */
+    fun parseDimension(ctx: LatexParserContext, stream: LatexTokenStream): String {
+        if (stream.peek() is LatexToken.LeftBrace) {
+            val arg = ctx.parseArgument() ?: return "0pt"
+            return extractText(listOf(arg)).trim().ifEmpty { "0pt" }
+        }
+
+        while (stream.peek() is LatexToken.Whitespace) stream.advance()
+        val raw = buildString {
+            while (true) {
+                val token = stream.peek()
+                if (token !is LatexToken.Text) break
+                append(token.content)
+                stream.advance()
+                if (dimensionPattern.matches(toString())) break
+            }
+        }
+        return dimensionPattern.find(raw)?.value ?: raw.ifEmpty { "0pt" }
     }
 
     /**

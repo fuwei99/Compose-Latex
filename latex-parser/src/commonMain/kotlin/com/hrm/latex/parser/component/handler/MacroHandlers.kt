@@ -125,6 +125,25 @@ internal fun CommandRegistry.installMacroHandlers() {
         LatexNode.NewCommand(commandName, 0, definition)
     }
 
+    // mathtools: \DeclarePairedDelimiter{\name}{left}{right}
+    // The declared command expands through the existing custom-command machinery.
+    register("DeclarePairedDelimiter") { _, ctx, stream ->
+        val commandName = parseCommandName(stream) ?: return@register LatexNode.Text("")
+        val left = ParseUtils.extractDelimiter(ctx.parseArgument() ?: LatexNode.Text(""))
+        val right = ParseUtils.extractDelimiter(ctx.parseArgument() ?: LatexNode.Text(""))
+        val definition = listOf(
+            LatexNode.Delimited(left, right, listOf(LatexNode.Text("#1")))
+        )
+        ctx.customCommands[commandName] = CustomCommand(
+            commandName,
+            1,
+            definition,
+            acceptsDelimiterModifier = true
+        )
+        HLog.d(TAG) { "注册配对定界符: \\$commandName → $left…$right" }
+        LatexNode.NewCommand(commandName, 1, definition)
+    }
+
     // \newenvironment, \renewenvironment
     val newEnvHandler = CommandHandler { _, ctx, stream ->
         val nameArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")

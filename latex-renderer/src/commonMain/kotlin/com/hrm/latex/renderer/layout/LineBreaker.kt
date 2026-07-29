@@ -209,10 +209,11 @@ internal class LineBreaker(private val maxWidth: Float) {
 
     private fun getOperatorPenalty(op: String): Int = when (op) {
         "=", "≠", "≈", "≡", "∼", "≃", "≅", "<", ">", "≤", "≥", "≪", "≫",
-        "⊂", "⊃", "⊆", "⊇", "∈", "∋", "≺", "≻", "∝",
+        "⊂", "⊃", "⊆", "⊇", "∈", "∋", "≺", "≻", "∝", "≔", "≕", "∷",
         "eq", "ne", "neq", "approx", "equiv", "sim", "le", "leq", "ge", "geq",
         "ll", "gg", "subset", "supset", "subseteq", "supseteq", "in", "ni",
-        "prec", "succ", "propto", "varpropto" -> PENALTY_RELATION
+        "prec", "succ", "propto", "varpropto",
+        "coloneqq", "coloneq", "eqqcolon", "eqcolon", "dblcolon" -> PENALTY_RELATION
 
         "+", "-", "−", "±", "∓",
         "pm", "mp", "plus", "minus" -> PENALTY_ADDITIVE
@@ -225,7 +226,7 @@ internal class LineBreaker(private val maxWidth: Float) {
 
     private fun getSymbolPenalty(unicode: String): Int = when (unicode) {
         "=", "≠", "≈", "≡", "∼", "≃", "≅", "<", ">", "≤", "≥", "≪", "≫",
-        "⊂", "⊃", "⊆", "⊇", "∈", "∋", "≺", "≻", "∝" -> PENALTY_RELATION
+        "⊂", "⊃", "⊆", "⊇", "∈", "∋", "≺", "≻", "∝", "≔", "≕", "∷" -> PENALTY_RELATION
 
         "+", "-", "−", "±", "∓" -> PENALTY_ADDITIVE
 

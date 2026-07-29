@@ -188,6 +188,12 @@ object SymbolMap {
         "dashv" to "⊣",
         "top" to "⊤",
         "bot" to "⊥",
+        // mathtools 常用定义关系
+        "coloneqq" to "≔",
+        "coloneq" to "≔",
+        "eqqcolon" to "≕",
+        "eqcolon" to "≕",
+        "dblcolon" to "∷",
 
         // 箭头
         "leftarrow" to "←",

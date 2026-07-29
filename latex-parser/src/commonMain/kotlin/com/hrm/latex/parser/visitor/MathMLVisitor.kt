@@ -240,6 +240,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.RING -> "<mover>$content<mo>˚</mo></mover>"
             LatexNode.Accent.AccentType.OVERBRACKET -> "<mover>$content<mo>⎴</mo></mover>"
             LatexNode.Accent.AccentType.UNDERBRACKET -> "<munder>$content<mo>⎵</mo></munder>"
+            LatexNode.Accent.AccentType.WIDECHECK -> "<mover>$content<mo>ˇ</mo></mover>"
+            LatexNode.Accent.AccentType.OVERLEFTRIGHTARROW ->
+                "<mover>$content<mo>↔</mo></mover>"
+            LatexNode.Accent.AccentType.UNDERLEFTARROW ->
+                "<munder>$content<mo>←</mo></munder>"
+            LatexNode.Accent.AccentType.UNDERRIGHTARROW ->
+                "<munder>$content<mo>→</mo></munder>"
+            LatexNode.Accent.AccentType.OVERPAREN -> "<mover>$content<mo>⏜</mo></mover>"
+            LatexNode.Accent.AccentType.UNDERPAREN -> "<munder>$content<mo>⏝</mo></munder>"
         }
     }
 
@@ -546,6 +555,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     override fun visitMathLap(node: LatexNode.MathLap): String {
         val content = node.content.joinToString("") { visit(it) }
         return "<mpadded width=\"0\">$content</mpadded>"
+    }
+
+    override fun visitLayout(node: LatexNode.Layout): String = when (node.layoutType) {
+        LatexNode.Layout.LayoutType.RAISE_BOX -> {
+            val content = node.content.joinToString("") { visit(it) }
+            "<mpadded voffset=\"${escapeXml(node.shift.orEmpty())}\">$content</mpadded>"
+        }
+        LatexNode.Layout.LayoutType.RULE ->
+            "<mspace width=\"${escapeXml(node.width.orEmpty())}\" height=\"${escapeXml(node.height.orEmpty())}\" mathbackground=\"currentColor\"/>"
     }
 
     override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String = ""

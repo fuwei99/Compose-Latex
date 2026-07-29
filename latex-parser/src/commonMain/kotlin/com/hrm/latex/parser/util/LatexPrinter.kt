@@ -140,7 +140,10 @@ class LatexPrinter : BaseLatexVisitor<String>() {
     }
     
     override fun visitMatrix(node: LatexNode.Matrix): String {
-        output.append("Matrix(${node.type}${if (node.isSmall) ", small" else ""})\n")
+        output.append(
+            "Matrix(${node.type}${if (node.isSmall) ", small" else ""}" +
+                "${node.alignment?.let { ", alignment=$it" } ?: ""})\n"
+        )
         indent++
         node.rows.forEachIndexed { i, row ->
             printIndent()
@@ -281,6 +284,24 @@ class LatexPrinter : BaseLatexVisitor<String>() {
             visit(child)
         }
         indent--
+        return ""
+    }
+
+    override fun visitLayout(node: LatexNode.Layout): String {
+        output.append("Layout(${node.layoutType}")
+        node.width?.let { output.append(", width=$it") }
+        node.height?.let { output.append(", height=$it") }
+        node.shift?.let { output.append(", shift=$it") }
+        output.append(")")
+        if (node.content.isNotEmpty()) {
+            output.append("\n")
+            indent++
+            node.content.forEach { child ->
+                printIndent()
+                visit(child)
+            }
+            indent--
+        }
         return ""
     }
 

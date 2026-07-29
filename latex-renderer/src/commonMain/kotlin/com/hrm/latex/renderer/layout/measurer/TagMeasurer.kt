@@ -47,6 +47,9 @@ internal class TagMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         node as LatexNode.Tag
+        if (node.starred && node.label.children().isEmpty()) {
+            return NodeLayout(0f, 0f, 0f) { _, _ -> }
+        }
         val labelLayout = measureNode(node.label, context)
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val gap = fontSizePx * 1.5f

@@ -133,9 +133,22 @@ internal class ChemicalParser(private val context: LatexParserContext) {
                         val group = context.parseGroup()
                         nodes.add(group)
                         expectCoefficient = false
-                    } else if (token is LatexToken.LeftBracket || token is LatexToken.RightBracket) {
-                        val text = if (token is LatexToken.LeftBracket) "[" else "]"
-                        nodes.add(LatexNode.Text(text))
+                    } else if (token is LatexToken.LeftBracket) {
+                        val direction = (nodes.lastOrNull() as? LatexNode.Symbol)?.let(::arrowDirection)
+                        if (direction != null) {
+                            nodes.removeAt(nodes.lastIndex)
+                            val above = parseChemicalAnnotation()
+                            val below = if (tokenStream.peek() is LatexToken.LeftBracket) {
+                                parseChemicalAnnotation()
+                            } else null
+                            nodes.add(LatexNode.ExtensibleArrow(above, below, direction))
+                        } else {
+                            nodes.add(LatexNode.Text("["))
+                            tokenStream.advance()
+                        }
+                        expectCoefficient = false
+                    } else if (token is LatexToken.RightBracket) {
+                        nodes.add(LatexNode.Text("]"))
                         tokenStream.advance()
                         expectCoefficient = false
                     } else {
@@ -242,6 +255,22 @@ internal class ChemicalParser(private val context: LatexParserContext) {
             // 1.4 结晶水连接符 * 或 .
             if (char == '*' || char == '.') {
                 nodes.add(LatexNode.Symbol("cdot", "·"))
+                i++
+                expectCoef = true
+                continue
+            }
+
+            // 1.5 化学键。箭头已在前面的分支优先识别。
+            if (char == '#' || char == '=' || char == '~' ||
+                (char == '-' && i + 1 < text.length && (text[i + 1].isLetter() || text[i + 1] == '('))
+            ) {
+                val (name, symbol) = when (char) {
+                    '#' -> "triplebond" to "≡"
+                    '=' -> "doublebond" to "="
+                    '~' -> "aromaticbond" to "∼"
+                    else -> "singlebond" to "−"
+                }
+                nodes.add(LatexNode.Symbol(name, symbol))
                 i++
                 expectCoef = true
                 continue
@@ -374,6 +403,26 @@ internal class ChemicalParser(private val context: LatexParserContext) {
             nodes.add(LatexNode.Subscript(LatexNode.Text(""), index))
         }
     }
+
+    private fun parseChemicalAnnotation(): LatexNode {
+        tokenStream.advance() // [
+        val content = mutableListOf<LatexNode>()
+        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
+            context.parseExpression()?.let(content::add)
+        }
+        if (tokenStream.peek() is LatexToken.RightBracket) tokenStream.advance()
+        return if (content.size == 1) content[0] else LatexNode.Group(content)
+    }
+
+    private fun arrowDirection(symbol: LatexNode.Symbol): LatexNode.ExtensibleArrow.Direction? =
+        when (symbol.symbol) {
+            "rightarrow" -> LatexNode.ExtensibleArrow.Direction.RIGHT
+            "leftarrow" -> LatexNode.ExtensibleArrow.Direction.LEFT
+            "leftrightarrow" -> LatexNode.ExtensibleArrow.Direction.BOTH
+            "Rightarrow" -> LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE
+            "Leftrightarrow" -> LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE
+            else -> null
+        }
 
     private fun attachSuperscript(nodes: MutableList<LatexNode>, exponent: LatexNode) {
         if (nodes.isNotEmpty()) {

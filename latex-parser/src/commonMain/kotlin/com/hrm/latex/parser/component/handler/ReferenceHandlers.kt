@@ -74,6 +74,19 @@ internal fun CommandRegistry.installReferenceHandlers() {
         LatexNode.Tag(arg, starred)
     }
 
+    register("notag", "nonumber") { _, _, _ ->
+        LatexNode.Tag(LatexNode.Group(emptyList()), starred = true)
+    }
+
+    register("intertext", "shortintertext") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        val text = when (arg) {
+            is LatexNode.Group -> ParseUtils.extractText(arg.children)
+            else -> ParseUtils.extractText(listOf(arg))
+        }
+        LatexNode.TextMode(text)
+    }
+
     register("substack") { _, ctx, stream ->
         if (stream.peek() !is LatexToken.LeftBrace) {
             return@register LatexNode.Text("\\substack")

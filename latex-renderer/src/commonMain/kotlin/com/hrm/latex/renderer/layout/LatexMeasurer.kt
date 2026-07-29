@@ -23,6 +23,8 @@
 
 package com.hrm.latex.renderer.layout
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
@@ -53,6 +55,7 @@ import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.withColor
 import com.hrm.latex.renderer.utils.MathSpacing
 import com.hrm.latex.renderer.utils.lineSpacingPx
+import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.splitLines
 import kotlin.reflect.KClass
 
@@ -208,6 +211,32 @@ internal fun measureNode(
                 // rlap: 内容向右扩展，宽度为零
                 LatexNode.MathLap.LapType.RLAP -> NodeLayout(0f, contentLayout.height, contentLayout.baseline) { x, y ->
                     contentLayout.draw(this, x, y)
+                }
+            }
+        }
+
+        is LatexNode.Layout -> when (node.layoutType) {
+            LatexNode.Layout.LayoutType.RAISE_BOX -> {
+                val content = measureGroup(node.content, context, measurer, density, cache = cache)
+                val shift = parseDimension(node.shift.orEmpty(), context, density)
+                val rawBaseline = content.baseline + shift
+                val childTop = maxOf(-rawBaseline, 0f)
+                val baseline = rawBaseline + childTop
+                val height = maxOf(childTop + content.height, baseline)
+                NodeLayout(content.width, height, baseline) { x, y ->
+                    content.draw(this, x, y + childTop)
+                }
+            }
+            LatexNode.Layout.LayoutType.RULE -> {
+                val width = parseDimension(node.width.orEmpty(), context, density).coerceAtLeast(0f)
+                val ruleHeight = parseDimension(node.height.orEmpty(), context, density).coerceAtLeast(0f)
+                val shift = parseDimension(node.shift.orEmpty(), context, density)
+                val rawBaseline = ruleHeight + shift
+                val ruleTop = maxOf(-rawBaseline, 0f)
+                val baseline = rawBaseline + ruleTop
+                val height = maxOf(ruleTop + ruleHeight, baseline)
+                NodeLayout(width, height, baseline) { x, y ->
+                    drawRect(context.color, topLeft = Offset(x, y + ruleTop), size = Size(width, ruleHeight))
                 }
             }
         }

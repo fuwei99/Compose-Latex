@@ -177,6 +177,12 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.RING -> "ring"
             LatexNode.Accent.AccentType.OVERBRACKET -> "overbracket"
             LatexNode.Accent.AccentType.UNDERBRACKET -> "underbracket"
+            LatexNode.Accent.AccentType.WIDECHECK -> "wide check"
+            LatexNode.Accent.AccentType.OVERLEFTRIGHTARROW -> "left right arrow over"
+            LatexNode.Accent.AccentType.UNDERLEFTARROW -> "left arrow under"
+            LatexNode.Accent.AccentType.UNDERRIGHTARROW -> "right arrow under"
+            LatexNode.Accent.AccentType.OVERPAREN -> "overparen"
+            LatexNode.Accent.AccentType.UNDERPAREN -> "underparen"
         }
         return "$content $accent"
     }
@@ -396,6 +402,12 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     override fun visitMathLap(node: LatexNode.MathLap): String {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+    }
+
+    override fun visitLayout(node: LatexNode.Layout): String = when (node.layoutType) {
+        LatexNode.Layout.LayoutType.RAISE_BOX ->
+            node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+        LatexNode.Layout.LayoutType.RULE -> "rule"
     }
 
     override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String = ""

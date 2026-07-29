@@ -160,6 +160,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("13", "cal/frak/scr (legacy)", "\\cal A \\quad \\frak g \\quad \\scr F"),
             PreviewItem("14", "字号阶梯", "\\tiny x \\scriptsize x \\footnotesize x \\small x \\normalsize x \\large x \\Large x \\LARGE x \\huge x \\Huge x"),
             PreviewItem("15", "字号作用域", "{\\small a + b} \\quad {\\Huge c + d}"),
+            PreviewItem("16", "广义与中缀分数", "\\genfrac{(}{)}{0pt}{0}{a+b}{c} \\quad {n \\choose k}"),
+            PreviewItem("17", "mathtools 分行分数", "\\splitdfrac{a+b+c}{d+e}"),
         )
     ),
     PreviewGroup(
@@ -376,6 +378,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("17", "lVert/rVert 定界符", "\\left\\lVert v \\right\\rVert"),
             PreviewItem("18", "Big lvert", "\\Big\\lvert x \\Big\\rvert"),
             PreviewItem("19", "lbrace 花括号写法", "\\left{123\\right} \\left\\lbrace12345\\right\\rbrace"),
+            PreviewItem("20", "中间定界符", "\\left\\langle x \\middle| y \\right\\rangle"),
         )
     ),
     PreviewGroup(
@@ -441,6 +444,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("40", "xmapsto 映射", "x \\xmapsto{f} f(x)"),
             PreviewItem("41", "xRightarrow 带下标", "A \\xRightarrow[below]{above} B"),
             PreviewItem("42", "箭头对比", "\\xrightarrow{f} \\quad \\xRightarrow{f} \\quad \\xmapsto{f}"),
+            PreviewItem("43", "宽重音与上下箭头", "\\widecheck{ABC} \\quad \\overleftrightarrow{AB} \\quad \\underparen{xy}"),
         )
     ),
     PreviewGroup(
@@ -505,6 +509,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("29", "LTR 嵌套在 RTL 中", "\\RLE{مرحبا \\LRE{Hello} عالم}"),
             PreviewItem("30", "RTL 环境", "\\begin{RTL}مرحبا بالعالم\\end{RTL}"),
             PreviewItem("31", "RTL 数学混排", "\\RLE{x^2 + y^2 = r^2}"),
+            PreviewItem("32", "raisebox 与 rule", "\\raisebox{3pt}{x} \\quad \\rule{2em}{.1em}"),
+            PreviewItem("33", "mathtools 方框与位移", "\\Aboxed{x=1} \\quad \\MoveEqLeft[2] y=2"),
         )
     ),
     PreviewGroup(
@@ -724,6 +730,11 @@ val basicLatexPreviewGroups = listOf(
                 "newenvironment 带参数",
                 "\\newenvironment{titled}[1]{\\textbf{#1:}~}{} \\begin{titled}{Theorem}P \\implies Q\\end{titled}"
             ),
+            PreviewItem(
+                "19",
+                "DeclarePairedDelimiter",
+                "\\DeclarePairedDelimiter{\\set}{\\lbrace}{\\rbrace} \\set{x \\in A}"
+            ),
         )
     ),
     PreviewGroup(
@@ -741,6 +752,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("8", "扩展空格", "a \\enspace b \\enskip c \\negmedspace d \\negthickspace e"),
             PreviewItem("9", "转义特殊字符", "\\{ \\} \\$ \\% \\# \\& \\_"),
             PreviewItem("10", "双竖线命令", "\\| \\quad \\left\\| x \\right\\| \\quad \\big\\|"),
+            PreviewItem("11", "kern 与 mkern", "a\\kern1em b \\quad x\\mkern6mu y"),
         )
     ),
     PreviewGroup(
@@ -933,6 +945,7 @@ val basicLatexPreviewGroups = listOf(
                 "alignat 环境",
                 "\\begin{alignat}{2} a &= b & \\quad c &= d \\\\ e &= f & \\quad g &= h \\end{alignat}"
             ),
+            PreviewItem("26", "星号矩阵对齐", "\\begin{pmatrix*}[r] a&b \\\\ c&d \\end{pmatrix*}"),
         )
     ),
     PreviewGroup(
@@ -1074,6 +1087,7 @@ val basicLatexPreviewGroups = listOf(
                 "AMS 杂项扩展",
                 "\\blacklozenge \\quad \\Bbbk"
             ),
+            PreviewItem("37", "mathtools 定义关系", "f \\coloneqq x^2 \\quad y \\eqqcolon g(x)"),
         )
     ),
     PreviewGroup(
@@ -1294,6 +1308,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("6", "绝对值与范数", "\\abs{x} + \\norm{v}"),
             PreviewItem("7", "SI 数值与单位", "\\SI{9.8}{m/s^2}"),
             PreviewItem("8", "单位与科学计数法", "\\si{kg.m/s^2} \\quad \\num{1.23e4}"),
+            PreviewItem("9", "siunitx v3", "\\qty{1.5}{\\kilo\\metre\\per\\second} \\quad \\qtyrange{2}{4}{\\metre}"),
+            PreviewItem("10", "对易与向量", "\\comm{A}{B} + \\anticomm{A}{B} \\quad \\vb{v}, \\va{a}"),
         )
     ),
 )

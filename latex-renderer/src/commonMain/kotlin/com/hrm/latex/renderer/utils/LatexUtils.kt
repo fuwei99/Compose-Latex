@@ -106,6 +106,12 @@ internal fun parseDimension(dimension: String, context: RenderContext, density: 
             "in" -> (value * 96f).dp.toPx()
             "em" -> context.fontSize.toPx() * value
             "ex" -> context.fontSize.toPx() * 0.5f * value
+            "mu" -> context.fontSize.toPx() * value / 18f
+            "bp" -> (value * 1.00375f).dp.toPx()
+            "pc" -> (value * 12f).dp.toPx()
+            "dd" -> (value * 1.07f).dp.toPx()
+            "cc" -> (value * 12.84f).dp.toPx()
+            "sp" -> (value / 65536f).dp.toPx()
             else -> value.dp.toPx() // default to dp
         }
     }

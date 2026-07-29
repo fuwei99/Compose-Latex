@@ -224,7 +224,8 @@ object MathSpacing {
         "mapsto", "to", "longmapsto",
         "propto", "varpropto", "perp", "parallel", "mid",
         "prec", "succ", "preceq", "succeq",
-        "vdash", "dashv"
+        "vdash", "dashv",
+        "coloneqq", "coloneq", "eqqcolon", "eqcolon", "dblcolon"
     )
 
     /**
@@ -291,7 +292,9 @@ object MathSpacing {
         if (unicode.length == 1) {
             val ch = unicode[0]
             if (ch == '+' || ch == '-' || ch == '×' || ch == '÷' || ch == '·') return AtomType.BIN
-            if (ch == '=' || ch == '<' || ch == '>' || ch == '≤' || ch == '≥' || ch == '≈' || ch == '≡' || ch == '≠') return AtomType.REL
+            if (ch == '=' || ch == '<' || ch == '>' || ch == '≤' || ch == '≥' || ch == '≈' ||
+                ch == '≡' || ch == '≠' || ch == '≔' || ch == '≕' || ch == '∷'
+            ) return AtomType.REL
             if (ch in PUNCTUATION_CHARS) return AtomType.PUNCT
         }
         return AtomType.ORD

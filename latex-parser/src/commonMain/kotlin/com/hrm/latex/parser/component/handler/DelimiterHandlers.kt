@@ -108,6 +108,23 @@ internal fun CommandRegistry.installDelimiterHandlers() {
         LatexNode.Delimited(left, right, content)
     }
 
+    // A middle delimiter participates in a surrounding \left...\right group.
+    // It is represented by a large manual delimiter so it remains visible even
+    // when parsed outside such a group; the renderer uses the Size2 glyph.
+    register("middle") { _, _, stream ->
+        val token = stream.consumeDelimiterToken()
+        val delimiter = when (token) {
+            is LatexToken.Text -> ParseUtils.delimiterFromName(token.content)
+            is LatexToken.LeftBrace -> "{"
+            is LatexToken.RightBrace -> "}"
+            is LatexToken.LeftBracket -> "["
+            is LatexToken.RightBracket -> "]"
+            is LatexToken.Command -> ParseUtils.delimiterFromName(token.name)
+            else -> "|"
+        }
+        LatexNode.ManualSizedDelimiter(delimiter, 1.8f, isMiddle = true)
+    }
+
     // 手动大小控制
     val manualSizeHandler = CommandHandler { cmdName, _, stream ->
         val baseSizeCmd = when {

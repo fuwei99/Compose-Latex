@@ -138,6 +138,19 @@ internal class CommandParser(
     private fun expandCustomCommand(customCmd: CustomCommand): LatexNode {
         val args = mutableListOf<LatexNode>()
 
+        if (customCmd.acceptsDelimiterModifier) {
+            while (tokenStream.peek() is LatexToken.Whitespace) tokenStream.advance()
+            val star = tokenStream.peek() as? LatexToken.Text
+            if (star?.content == "*") tokenStream.advance()
+            if (tokenStream.peek() is LatexToken.LeftBracket) {
+                tokenStream.advance()
+                while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
+                    tokenStream.advance()
+                }
+                if (tokenStream.peek() is LatexToken.RightBracket) tokenStream.advance()
+            }
+        }
+
         if (customCmd.defaultArg != null && customCmd.numArgs > 0) {
             // 第一个参数是可选参数：检查是否提供了 [value]
             val firstArg = if (tokenStream.peek() is LatexToken.LeftBracket) {

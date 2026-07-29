@@ -55,6 +55,12 @@ internal fun CommandRegistry.installAccentHandlers() {
         "mathring" to LatexNode.Accent.AccentType.RING,
         "overbracket" to LatexNode.Accent.AccentType.OVERBRACKET,
         "underbracket" to LatexNode.Accent.AccentType.UNDERBRACKET,
+        "widecheck" to LatexNode.Accent.AccentType.WIDECHECK,
+        "overleftrightarrow" to LatexNode.Accent.AccentType.OVERLEFTRIGHTARROW,
+        "underleftarrow" to LatexNode.Accent.AccentType.UNDERLEFTARROW,
+        "underrightarrow" to LatexNode.Accent.AccentType.UNDERRIGHTARROW,
+        "overparen" to LatexNode.Accent.AccentType.OVERPAREN,
+        "underparen" to LatexNode.Accent.AccentType.UNDERPAREN,
     )
 
     for ((cmd, accentType) in accentMapping) {

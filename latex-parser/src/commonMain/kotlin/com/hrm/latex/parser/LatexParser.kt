@@ -31,6 +31,7 @@ import com.hrm.latex.parser.component.CustomEnvironment
 import com.hrm.latex.parser.component.EnvironmentParser
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
+import com.hrm.latex.parser.component.handler.ParseUtils
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
@@ -312,15 +313,24 @@ internal class ParseSession(
     private fun parseMathList(isTerminator: (LatexToken?) -> Boolean): List<LatexNode> {
         val listStart = tokenStream.currentSourceOffset()
         val children = mutableListOf<LatexNode>()
-        var atopNumerator: List<LatexNode>? = null
-        var atopRange: SourceRange? = null
+        var infixNumerator: List<LatexNode>? = null
+        var infixRange: SourceRange? = null
+        var infixCommand: String? = null
+        var aboveDimension: String? = null
 
         while (!tokenStream.isEOF() && !isTerminator(tokenStream.peek())) {
             val token = tokenStream.peek()
-            if (token is LatexToken.Command && token.name == "atop" && atopNumerator == null) {
+            if (token is LatexToken.Command &&
+                token.name in setOf("over", "atop", "choose", "above") &&
+                infixNumerator == null
+            ) {
                 tokenStream.advance()
-                atopNumerator = normalizeStyleDeclarations(children.toList())
-                atopRange = token.range
+                infixNumerator = normalizeStyleDeclarations(children.toList())
+                infixRange = token.range
+                infixCommand = token.name
+                if (token.name == "above") {
+                    aboveDimension = ParseUtils.parseDimension(this, tokenStream)
+                }
                 children.clear()
                 continue
             }
@@ -331,23 +341,53 @@ internal class ParseSession(
         }
 
         val normalizedChildren = normalizeStyleDeclarations(children)
-        return atopNumerator?.let { numerator ->
-            val separatorRange = requireNotNull(atopRange)
+        return infixNumerator?.let { numerator ->
+            val separatorRange = requireNotNull(infixRange)
             val listEnd = tokenStream.previousEndOffset()
-            listOf(
-                LatexNode.Fraction(
-                    numerator = LatexNode.Group(
-                        numerator,
-                        sourceRange = SourceRange(listStart, separatorRange.start)
-                    ),
-                    denominator = LatexNode.Group(
-                        normalizedChildren,
-                        sourceRange = SourceRange(separatorRange.end, listEnd)
-                    ),
-                    style = LatexNode.Fraction.FractionStyle.RULELESS,
-                    sourceRange = SourceRange(listStart, listEnd)
-                )
+            val top = LatexNode.Group(
+                numerator,
+                sourceRange = SourceRange(listStart, separatorRange.start)
             )
+            val bottom = LatexNode.Group(
+                normalizedChildren,
+                sourceRange = SourceRange(separatorRange.end, listEnd)
+            )
+            val combinedRange = SourceRange(listStart, listEnd)
+            val combined = when (infixCommand) {
+                "choose" -> LatexNode.Binomial(
+                    top = top,
+                    bottom = bottom,
+                    sourceRange = combinedRange
+                )
+                "atop" -> LatexNode.Fraction(
+                    numerator = top,
+                    denominator = bottom,
+                    style = LatexNode.Fraction.FractionStyle.RULELESS,
+                    sourceRange = combinedRange
+                )
+                "above" -> {
+                    val zeroRule = aboveDimension.orEmpty().matches(
+                        Regex("""[+-]?0+(?:\.0+)?(?:[A-Za-z]+)?""")
+                    )
+                    LatexNode.Fraction(
+                        numerator = top,
+                        denominator = bottom,
+                        style = if (zeroRule) {
+                            LatexNode.Fraction.FractionStyle.RULELESS
+                        } else {
+                            LatexNode.Fraction.FractionStyle.NORMAL
+                        },
+                        sourceRange = combinedRange
+                    )
+                }
+                else -> LatexNode.Fraction(
+                    numerator = top,
+                    denominator = bottom,
+                    style = LatexNode.Fraction.FractionStyle.NORMAL,
+                    sourceRange = combinedRange
+                )
+            }
+            listOf(combined)
         } ?: normalizedChildren
     }
 

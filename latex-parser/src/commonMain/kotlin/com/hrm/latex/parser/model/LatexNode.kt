@@ -270,7 +270,9 @@ sealed class LatexNode {
         val type: MatrixType = MatrixType.PLAIN,
         val isSmall: Boolean = false,
         override val sourceRange: SourceRange? = null,
-        val rowGaps: List<RowGap?> = emptyList()
+        val rowGaps: List<RowGap?> = emptyList(),
+        /** Optional alignment from mathtools starred matrix environments. */
+        val alignment: String? = null
     ) : LatexNode() {
         enum class MatrixType {
             PLAIN, PAREN, BRACKET, BRACE, VBAR, DOUBLE_VBAR
@@ -412,6 +414,8 @@ sealed class LatexNode {
     data class ManualSizedDelimiter(
         val delimiter: String,
         val size: Float,
+        /** True for `\middle`; the renderer matches it to the surrounding pair. */
+        val isMiddle: Boolean = false,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         override fun children() = emptyList<LatexNode>()
@@ -432,7 +436,9 @@ sealed class LatexNode {
             HAT, TILDE, BAR, DOT, DDOT, DDDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
             WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL,
             GRAVE, ACUTE, CHECK, BREVE, RING,
-            OVERBRACKET, UNDERBRACKET
+            OVERBRACKET, UNDERBRACKET,
+            WIDECHECK, OVERLEFTRIGHTARROW, UNDERLEFTARROW, UNDERRIGHTARROW,
+            OVERPAREN, UNDERPAREN
         }
 
         override fun children() = listOf(content)
@@ -1261,6 +1267,27 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMathLap(this)
+    }
+
+    /**
+     * Fine layout primitives used by \raisebox and \rule.
+     * Dimensions are retained in TeX form and resolved by the renderer so em/ex
+     * values continue to follow the active math style.
+     */
+    data class Layout(
+        val layoutType: LayoutType,
+        val content: List<LatexNode> = emptyList(),
+        val width: String? = null,
+        val height: String? = null,
+        val shift: String? = null,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class LayoutType { RAISE_BOX, RULE }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitLayout(this)
     }
 
     /**
