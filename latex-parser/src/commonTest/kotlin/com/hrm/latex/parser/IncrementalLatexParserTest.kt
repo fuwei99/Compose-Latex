@@ -284,6 +284,29 @@ class IncrementalLatexParserTest {
         }
     }
 
+    @Test
+    fun unbracedArgumentsMatchStandardParserWhenAppendedCharacterByCharacter() {
+        val formulas = listOf(
+            "\\frac12x",
+            "\\binom12x",
+            "\\sqrt😀x",
+            "\\int_12",
+            "x_ 1y"
+        )
+
+        for (formula in formulas) {
+            val expected = LatexParser().parse(formula)
+            val incrementalParser = IncrementalLatexParser()
+            formula.forEach { incrementalParser.append(it.toString()) }
+
+            assertEquals(
+                expected,
+                incrementalParser.getCurrentDocument(),
+                "Incremental parser mismatch for formula: $formula"
+            )
+        }
+    }
+
     // ========== 复杂场景：编辑后再追加 ==========
 
     @Test

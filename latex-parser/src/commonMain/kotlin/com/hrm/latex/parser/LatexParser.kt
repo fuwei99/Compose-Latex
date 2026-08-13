@@ -397,6 +397,10 @@ internal class ParseSession(
         }
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
+            is LatexToken.Text -> {
+                val token = tokenStream.consumeTextAtom() ?: return null
+                LatexNode.Text(token.content, sourceRange = token.range)
+            }
             else -> parseFactor()
         }
     }
@@ -423,14 +427,7 @@ internal class ParseSession(
     }
 
     private fun parseScriptContent(): LatexNode {
-        return when (tokenStream.peek()) {
-            is LatexToken.LeftBrace -> parseGroup()
-            is LatexToken.Text -> {
-                val token = tokenStream.consumeTextAtom() ?: return LatexNode.Text("")
-                LatexNode.Text(token.content, sourceRange = token.range)
-            }
-            else -> parseFactor() ?: LatexNode.Text("")
-        }
+        return parseArgument() ?: LatexNode.Text("")
     }
 
     override fun normalizeStyleDeclarations(nodes: List<LatexNode>): List<LatexNode> {

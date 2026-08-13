@@ -34,6 +34,14 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import kotlin.math.max
+
+internal data class VerticalDelimiterGeometry(
+    val width: Float,
+    val height: Float,
+    val strokeWidth: Float,
+    val lineCenters: List<Float>
+)
 
 /** KaTeX Main/Size1…Size4 定界符选择与精确墨迹测量。 */
 internal object DelimiterRenderer {
@@ -58,6 +66,10 @@ internal object DelimiterRenderer {
         density: Density? = null
     ): NodeLayout {
         if (delimiter.isEmpty()) return NodeLayout.EMPTY
+
+        measureVerticalBars(delimiter, context, measurer, targetHeight, density)?.let {
+            return it
+        }
 
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
         val families = context.fontFamilies
@@ -89,6 +101,85 @@ internal object DelimiterRenderer {
         return measureText(glyph, scaledContext, measurer, families.size4Bytes, density)
     }
 
+    /**
+     * 竖线是可拼装定界符，不能把 Size 字体中的 glyph 0 当作完整字形缩放。
+     * 高度按目标值伸展，笔画宽始终保持 TeX rule thickness。
+     */
+    fun measureVerticalBars(
+        delimiter: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        targetHeight: Float,
+        density: Density? = null
+    ): NodeLayout? {
+        val lineCount = verticalBarCount(delimiter) ?: return null
+        val mainContext = FontResolver.delimiterContext(context, delimiter, scale = 1.0f)
+        val baseLayout = measureText(
+            delimiter,
+            mainContext,
+            measurer,
+            context.fontFamilies?.mainBytes,
+            density
+        )
+        val fontSizePx = density?.let { with(it) { context.fontSize.toPx() } }
+            ?: context.fontSize.value
+        val strokeWidth = context.mathFontProvider?.fractionRuleThickness(fontSizePx)
+            ?: fontSizePx * MathConstants.FRACTION_RULE_THICKNESS
+        val geometry = calculateVerticalDelimiterGeometry(
+            lineCount = lineCount,
+            advanceWidth = baseLayout.width,
+            targetHeight = if (targetHeight > 0f) targetHeight else baseLayout.height,
+            fontSizePx = fontSizePx,
+            strokeWidth = strokeWidth
+        )
+
+        return NodeLayout(
+            width = geometry.width,
+            height = geometry.height,
+            baseline = geometry.height / 2f
+        ) { x, y ->
+            for (center in geometry.lineCenters) {
+                drawLine(
+                    color = context.color,
+                    start = Offset(x + center, y),
+                    end = Offset(x + center, y + geometry.height),
+                    strokeWidth = geometry.strokeWidth
+                )
+            }
+        }
+    }
+
+    internal fun calculateVerticalDelimiterGeometry(
+        lineCount: Int,
+        advanceWidth: Float,
+        targetHeight: Float,
+        fontSizePx: Float,
+        strokeWidth: Float
+    ): VerticalDelimiterGeometry {
+        require(lineCount == 1 || lineCount == 2)
+        val lineSeparation = strokeWidth + fontSizePx * DOUBLE_BAR_GAP_EM
+        val inkWidth = if (lineCount == 1) strokeWidth else lineSeparation + strokeWidth
+        val width = max(advanceWidth, inkWidth)
+        val center = width / 2f
+        val centers = if (lineCount == 1) {
+            listOf(center)
+        } else {
+            listOf(center - lineSeparation / 2f, center + lineSeparation / 2f)
+        }
+        return VerticalDelimiterGeometry(
+            width = width,
+            height = targetHeight.coerceAtLeast(strokeWidth),
+            strokeWidth = strokeWidth,
+            lineCenters = centers
+        )
+    }
+
+    private fun verticalBarCount(delimiter: String): Int? = when (delimiter) {
+        "|", "∣" -> 1
+        "‖", "∥" -> 2
+        else -> null
+    }
+
     fun measureText(
         delimiter: String,
         delimiterStyle: RenderContext,
@@ -117,4 +208,6 @@ internal object DelimiterRenderer {
             drawText(result, topLeft = Offset(x, y - topOffset))
         }
     }
+
+    private const val DOUBLE_BAR_GAP_EM = 0.155f
 }

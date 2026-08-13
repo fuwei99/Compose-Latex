@@ -73,6 +73,11 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("3", "简单下标", "a_i"),
             PreviewItem("4", "上标+下标", "x_i^2"),
             PreviewItem("5", "简单分数", "\\frac{1}{2}"),
+            PreviewItem(
+                "6",
+                "Issue #41：无花括号单原子参数",
+                "\\frac12 \\quad \\binom12 \\quad \\int_12"
+            ),
         )
     ),
     PreviewGroup(

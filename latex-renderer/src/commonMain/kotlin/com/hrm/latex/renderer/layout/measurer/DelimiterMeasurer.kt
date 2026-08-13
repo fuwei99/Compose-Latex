@@ -199,6 +199,16 @@ internal class DelimiterMeasurer : NodeMeasurer {
         val delimiter = node.delimiter
         val scaleFactor = node.size
 
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
+        DelimiterRenderer.measureVerticalBars(
+            delimiter = delimiter,
+            context = context,
+            measurer = measurer,
+            targetHeight = fontSizePx * scaleFactor,
+            density = density
+        )?.let { return centerOnAxis(it, axisHeight) }
+
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
 
         // 直接用对应的 Size 字体，不放大 fontSize
@@ -210,7 +220,6 @@ internal class DelimiterMeasurer : NodeMeasurer {
             fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
         )
 
-        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
         val bytes = when {
             scaleFactor <= 1.0f -> context.fontFamilies?.mainBytes
             scaleFactor <= 1.2f -> context.fontFamilies?.size1Bytes

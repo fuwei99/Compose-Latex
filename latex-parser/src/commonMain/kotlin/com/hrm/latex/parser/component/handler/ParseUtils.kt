@@ -158,12 +158,8 @@ internal object ParseUtils {
     /**
      * 解析上下标内容（单因子或花括号组）
      */
-    fun parseScriptContent(ctx: LatexParserContext, stream: LatexTokenStream): LatexNode {
-        return when (stream.peek()) {
-            is LatexToken.LeftBrace -> ctx.parseGroup()
-            else -> ctx.parseFactor() ?: LatexNode.Text("")
-        }
-    }
+    fun parseScriptContent(ctx: LatexParserContext): LatexNode =
+        ctx.parseArgument() ?: LatexNode.Text("")
 
     /**
      * 解析后续的 \limits/\nolimits 和上下标
@@ -210,12 +206,12 @@ internal object ParseUtils {
 
                 is LatexToken.Subscript if subscript == null -> {
                     stream.advance()
-                    subscript = parseScriptContent(ctx, stream)
+                    subscript = parseScriptContent(ctx)
                 }
 
                 is LatexToken.Superscript if superscript == null -> {
                     stream.advance()
-                    superscript = parseScriptContent(ctx, stream)
+                    superscript = parseScriptContent(ctx)
                 }
 
                 else -> break

@@ -63,8 +63,8 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     /**
      * 消费当前文本 token 的一个 Unicode 字符。
      *
-     * TeX 的无花括号上下标只消费后面的一个 token；普通文本在分词阶段会合并，
-     * 因此解析上下标时需要从合并后的文本 token 中仅取出第一个字符。
+     * TeX 的无花括号参数只消费后面的一个 token；普通文本在分词阶段会合并，
+     * 因此解析命令参数或上下标时需要从合并后的文本 token 中仅取出第一个字符。
      */
     internal fun consumeTextAtom(): LatexToken.Text? {
         val token = peek() as? LatexToken.Text ?: return null
